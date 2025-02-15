@@ -8,7 +8,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 namespace STROM.ATOM.TOOL.Common.Serilog
 {
-    public static class CustomTheme
+    public static partial class Theme
     {
         public static AnsiConsoleTheme ClarionDusk { get; } = new AnsiConsoleTheme(new Dictionary<ConsoleThemeStyle, string>
         {
