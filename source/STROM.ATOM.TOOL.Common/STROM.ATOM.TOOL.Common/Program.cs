@@ -6,8 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using Serilog;
+
 using Spectre.Console;
 using Spectre.Console.Cli;
+
+using STROM.ATOM.TOOL.Common.Serilog;
 
 namespace STROM.ATOM.TOOL.Common
 {
@@ -355,6 +359,15 @@ namespace STROM.ATOM.TOOL.Common
     {
         public static async Task<int> Main(string[] args)
         {
+
+            var loggconfig = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Async(e=>e.Console(theme: CustomTheme.ClarionDusk))
+                .CreateLogger();
+
+            Log.Logger = loggconfig;
+
+
             // Build the host.
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureServices((context, services) =>
@@ -369,13 +382,27 @@ namespace STROM.ATOM.TOOL.Common
                           .WithDescription("The default abortable command.");
                     config.AddCommand<DefaultAbortableCommand2>("default2")
                             .WithDescription("The default abortable command2.");
-                }, args)
+                }, args).UseSerilog(Log.Logger)
                 .Build();
 
+       
             await host.RunAsync();
 
-            // Return the exit code that was set.
-            return SpectreHostExtensions.exitCodeHolder.ExitCode ?? -999;
+            // Capture the exit code from the shared ExitCodeHolder.
+            int exitCode = SpectreHostExtensions.exitCodeHolder.ExitCode ?? -999;
+            if (exitCode == 0)
+            {
+                Log.Logger.Information("Execution succeeded with exit code {ExitCode}", exitCode);
+            }
+            else
+            {
+                Log.Logger.Error("Command exited with error exit code {ExitCode}", exitCode);
+            }
+
+            await Log.CloseAndFlushAsync();
+
+            // Return the exit code.
+            return exitCode;
         }
 
 
