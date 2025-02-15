@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "STROM.ATOM.TOOL.Common": {
+      "commandName": "Project",
+      "commandLineArgs": "-h"
+    }
+  }
+}

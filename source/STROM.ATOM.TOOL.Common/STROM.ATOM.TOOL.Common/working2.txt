@@ -1,0 +1,374 @@
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+using Spectre.Console;
+using Spectre.Console.Cli;
+
+namespace STROM.ATOM.TOOL.Common
+{
+    /// <summary>
+    /// Holds the exit code produced by the CommandApp.
+    /// </summary>
+    public class ExitCodeHolder
+    {
+        /// <summary>
+        /// Gets or sets the exit code.
+        /// </summary>
+        public int ExitCode { get; set; }
+    }
+
+    public static class CommandCancellationTokenContext
+    {
+        public static AsyncLocal<CancellationToken> Token { get; } = new AsyncLocal<CancellationToken>();
+    }
+
+    #region CommandAppExtensions
+
+    /// <summary>
+    /// Extension methods for Spectre.Console's CommandApp.
+    /// </summary>
+    public static class CommandAppExtensions
+    {
+        /// <summary>
+        /// Runs the command app asynchronously while honoring a cancellation token.
+        /// This wraps the synchronous Run method into a Task and races it against a cancellation task.
+        /// </summary>
+        /// <param name="commandApp">The CommandApp instance to run.</param>
+        /// <param name="args">Command-line arguments.</param>
+        /// <param name="cancellationToken">A token to signal cancellation.</param>
+        /// <returns>An integer exit code from the command app.</returns>
+        public static async Task<int> RunAsync(this CommandApp commandApp, string[] args, CancellationToken cancellationToken)
+        {
+            // Store the cancellation token in our ambient context.
+            CommandCancellationTokenContext.Token.Value = cancellationToken;
+
+            // Start the command execution on a background thread.
+            var runTask = Task.Run(() => commandApp.Run(args));
+
+            // Create a task that completes when cancellation is requested.
+            var cancelTask = Task.Delay(Timeout.Infinite, cancellationToken);
+
+            // Wait for either the command to finish or for cancellation to trigger.
+            var completedTask = await Task.WhenAny(runTask, cancelTask);
+            if (completedTask == runTask)
+            {
+                // Command finished normally.
+                return await runTask;
+            }
+            else
+            {
+                // Cancellation was requested.
+                throw new OperationCanceledException(cancellationToken);
+            }
+        }
+    }
+
+    #endregion
+    /// <summary>
+    /// Provides extension methods to register Spectre.CommandApp within the Generic Host.
+    /// </summary>
+    public static class SpectreHostExtensions
+    {
+        /// <summary>
+        /// Configures and registers the Spectre.CommandApp as well as the hosted service that runs it asynchronously.
+        /// Also registers an ExitCodeHolder to capture the command exit code.
+        /// </summary>
+        /// <param name="builder">The host builder.</param>
+        /// <param name="configure">An action to configure the CommandApp (register commands, etc.).</param>
+        /// <param name="args">The command-line arguments.</param>
+        /// <returns>The updated IHostBuilder.</returns>
+        public static IHostBuilder AddSpectreCommandApp(this IHostBuilder builder, Action<IConfigurator> configure, string[] args)
+        {
+            builder.ConfigureServices((context, services) =>
+            {
+                // Create a TypeRegistrar to integrate Spectre with the Microsoft DI container.
+                var registrar = new TypeRegistrar(services);
+                // Create the CommandApp instance.
+                var commandApp = new CommandApp(registrar);
+                // Allow the caller to configure the command pipeline (register commands, etc.).
+                commandApp.Configure(configure);
+
+                // Register the CommandApp in DI.
+                services.AddSingleton(commandApp);
+
+                // Register the hosted service that runs the CommandApp asynchronously.
+                // When the command app finishes, it will update the ExitCodeHolder.
+                services.AddHostedService(provider =>
+                    new SpectreCommandAppHostedService(
+                        provider.GetRequiredService<CommandApp>(),
+                        provider.GetRequiredService<ILogger<SpectreCommandAppHostedService>>(),
+                        provider.GetRequiredService<IHostApplicationLifetime>(),
+                        args,
+                        provider.GetRequiredService<ExitCodeHolder>()));
+            });
+            return builder;
+        }
+    }
+
+    #region Spectre DI Helpers
+
+    /// <summary>
+    /// Implements Spectre.Console.Cli's ITypeRegistrar for dependency injection using IServiceCollection.
+    /// </summary>
+    public sealed class TypeRegistrar : ITypeRegistrar
+    {
+        private readonly IServiceCollection _builder;
+
+        public TypeRegistrar(IServiceCollection builder)
+        {
+            _builder = builder;
+        }
+
+        public ITypeResolver Build()
+        {
+            // Build the service provider from the IServiceCollection.
+            return new TypeResolver(_builder.BuildServiceProvider());
+        }
+
+        public void Register(Type service, Type implementation)
+        {
+            // Register a service with its implementation.
+            _builder.AddSingleton(service, implementation);
+        }
+
+        public void RegisterInstance(Type service, object implementation)
+        {
+            // Register an already-created instance.
+            _builder.AddSingleton(service, implementation);
+        }
+
+        public void RegisterLazy(Type service, Func<object> func)
+        {
+            if (func is null)
+            {
+                throw new ArgumentNullException(nameof(func));
+            }
+            // Register a lazy factory for the service.
+            _builder.AddSingleton(service, provider => func());
+        }
+    }
+
+    /// <summary>
+    /// Implements Spectre.Console.Cli's ITypeResolver using IServiceProvider.
+    /// </summary>
+    public sealed class TypeResolver : ITypeResolver, IDisposable
+    {
+        private readonly IServiceProvider _provider;
+
+        public TypeResolver(IServiceProvider provider)
+        {
+            _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        }
+
+        public object Resolve(Type type)
+        {
+            // Resolve the service from the provider.
+            if (type == null)
+            {
+                return null;
+            }
+            return _provider.GetService(type);
+        }
+
+        public void Dispose()
+        {
+            // Dispose the underlying service provider if possible.
+            if (_provider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+    }
+    #endregion
+
+    #region Abortable Command Infrastructure
+
+    /// <summary>
+    /// An abstract base class for commands that are designed to be abortable via cancellation.
+    /// Inherits from Spectre.Console.Cli's Command<TSettings> and overrides Execute to call the async version,
+    /// which now returns an integer exit code.
+    /// </summary>
+    /// <typeparam name="TSettings">The settings type for the command.</typeparam>
+    public abstract class AbortableCommand<TSettings> : Command<TSettings>
+        where TSettings : CommandSettings, new()
+    {
+        public override int Execute(CommandContext context, TSettings settings)
+        {
+            // Retrieve the ambient cancellation token that was set by RunAsync.
+            var token = CommandCancellationTokenContext.Token.Value;
+            return ExecuteAsync(context, settings, token).GetAwaiter().GetResult();
+        }
+
+        public abstract Task<int> ExecuteAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken);
+    }
+    /// <summary>
+    /// A concrete abortable command that demonstrates asynchronous, cancellation-aware work.
+    /// It uses Spectre.Console for output and logs work progress. The exit code is returned from the async method.
+    /// </summary>
+    public class DefaultAbortableCommand : AbortableCommand<DefaultAbortableCommand.Settings>
+    {
+        private readonly IGreeter _greeter;
+        private readonly ILogger<DefaultAbortableCommand> _logger;
+
+        public class Settings : CommandSettings
+        {
+            public string Name { get; set; } = "World";
+        }
+
+        public DefaultAbortableCommand(IGreeter greeter, ILogger<DefaultAbortableCommand> logger)
+        {
+            _greeter = greeter ?? throw new ArgumentNullException(nameof(greeter));
+            _logger = logger;
+        }
+
+        public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+        {
+            _greeter.Greet(settings.Name);
+            _logger.LogInformation("DefaultAbortableCommand started.");
+
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Working...");
+                    await Task.Delay(1000, cancellationToken);
+                }
+                _logger.LogInformation("DefaultAbortableCommand completed normally.");
+                return 0;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("DefaultAbortableCommand canceled internally.");
+                return 99;
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// A simple service for greeting that is used by commands.
+    /// </summary>
+    public interface IGreeter
+    {
+        void Greet(string name);
+    }
+
+    /// <summary>
+    /// A concrete implementation of IGreeter that writes greetings to the console.
+    /// </summary>
+    public sealed class HelloWorldGreeter : IGreeter
+    {
+        public void Greet(string name)
+        {
+            AnsiConsole.WriteLine($"Hello {name}!");
+        }
+    }
+    #endregion
+    #region Hosted Service for CommandApp
+
+    /// <summary>
+    /// A hosted service that runs the Spectre.CommandApp asynchronously.
+    /// When the CommandApp finishes (even if it just shows help), it stores the exit code
+    /// and then signals the host to stop.
+    /// </summary>
+    public class SpectreCommandAppHostedService : BackgroundService
+    {
+        private readonly CommandApp _commandApp;
+        private readonly string[] _args;
+        private readonly ILogger<SpectreCommandAppHostedService> _logger;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
+        private readonly ExitCodeHolder _exitCodeHolder;
+
+        public SpectreCommandAppHostedService(
+            CommandApp commandApp,
+            ILogger<SpectreCommandAppHostedService> logger,
+            IHostApplicationLifetime hostApplicationLifetime,
+            string[] args,
+            ExitCodeHolder exitCodeHolder)
+        {
+            _commandApp = commandApp;
+            _logger = logger;
+            _hostApplicationLifetime = hostApplicationLifetime;
+            _args = args;
+            _exitCodeHolder = exitCodeHolder;
+        }
+
+        /// <summary>
+        /// Executes the CommandApp asynchronously. When execution is complete, the exit code is stored and the host is signaled to stop.
+        /// </summary>
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            try
+            {
+                _logger.LogInformation("Starting CommandApp...");
+                int exitCode = await _commandApp.RunAsync(_args, stoppingToken);
+                _logger.LogInformation("CommandApp finished with exit code {ExitCode}", exitCode);
+
+                // Store the exit code for later retrieval by Main.
+                _exitCodeHolder.ExitCode = exitCode;
+                // Signal the host to stop.
+                _hostApplicationLifetime.StopApplication();
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("CommandApp execution was canceled.");
+                // Set a specific exit code for cancellations.
+                _exitCodeHolder.ExitCode = -10;
+                _hostApplicationLifetime.StopApplication();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while running the CommandApp.");
+                // You might want to set an error exit code here as well.
+                _exitCodeHolder.ExitCode = -11;
+                _hostApplicationLifetime.StopApplication();
+            }
+        }
+    }
+    #endregion
+
+    #region Program Entry Point
+
+    /// <summary>
+    /// The main entry point for the application.
+    /// Configures the Generic Host, dependency injection, and Spectre.CommandApp.
+    /// </summary>
+    public class Program
+    {
+        public static async Task<int> Main(string[] args)
+        {
+            // Create the ExitCodeHolder instance manually.
+            var exitCodeHolder = new ExitCodeHolder();
+
+            var host = Host.CreateDefaultBuilder(args)
+                .ConfigureServices((context, services) =>
+                {
+                    // Register any shared services required by your commands.
+                    services.AddSingleton<IGreeter, HelloWorldGreeter>();
+
+                    // Register the pre-created ExitCodeHolder.
+                    services.AddSingleton(exitCodeHolder);
+                })
+                // Use our extension method to register and configure Spectre.CommandApp.
+                .AddSpectreCommandApp(config =>
+                {
+                    // Register your abortable commands here.
+                    config.AddCommand<DefaultAbortableCommand>("default")
+                          .WithDescription("The default abortable command.");
+                }, args)
+                .Build();
+
+            // Run the host. The application will exit when the hosted service stops.
+            await host.RunAsync();
+
+            // Now that the host is finished, we can return the exit code from our manually held instance.
+            return exitCodeHolder.ExitCode;
+        }
+    }
+    #endregion
+}
