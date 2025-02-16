@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+
+# Ignore files with any variation of "secret" in the name
+*[Ss][Ee][Cc][Rr][Ee][Tt]*

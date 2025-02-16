@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 namespace STROM.ATOM.TOOL.Common.NewFolder
 {
     public static class TaskHelper
