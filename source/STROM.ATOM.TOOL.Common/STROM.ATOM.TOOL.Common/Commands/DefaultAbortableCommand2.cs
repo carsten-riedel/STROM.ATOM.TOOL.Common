@@ -18,9 +18,9 @@ namespace STROM.ATOM.TOOL.Common.Commands
     /// A concrete abortable command that demonstrates asynchronous, cancellation-aware work.
     /// After 5 seconds it returns success (0), and if aborted it returns 99.
     /// </summary>
-    public class DefaultAbortableCommand2 : AbortableCommand<DefaultAbortableCommand2.Settings>
+    public class DefaultAbortableCommand2 : CancellableCommand<DefaultAbortableCommand2.Settings>
     {
-        private readonly IGreeter _greeter;
+
         private readonly ILogger<DefaultAbortableCommand2> _logger;
 
         public class Settings : CommandSettings
@@ -28,15 +28,15 @@ namespace STROM.ATOM.TOOL.Common.Commands
             public string Name { get; set; } = "World";
         }
 
-        public DefaultAbortableCommand2(IGreeter greeter, ILogger<DefaultAbortableCommand2> logger)
+        public DefaultAbortableCommand2( ILogger<DefaultAbortableCommand2> logger)
         {
-            _greeter = greeter ?? throw new ArgumentNullException(nameof(greeter));
+            
             _logger = logger;
         }
 
         public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
         {
-            _greeter.Greet(settings.Name);
+          
             _logger.LogInformation("DefaultAbortableCommand started.");
 
             try

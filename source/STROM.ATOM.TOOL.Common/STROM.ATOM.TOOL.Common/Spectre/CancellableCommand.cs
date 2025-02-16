@@ -16,19 +16,20 @@ namespace STROM.ATOM.TOOL.Common.Spectre
     /// Inherits from Spectre.Console.Cli's Command<TSettings> and overrides Execute to call the async version.
     /// This version obtains the shared ExitCodeHolder from SpectreHostExtensions.
     /// </summary>
-    public abstract class AbortableCommand<TSettings> : Command<TSettings> where TSettings : CommandSettings, new()
+    public abstract class CancellableCommand<TSettings> : Command<TSettings> where TSettings : CommandSettings, new()
     {
-        // Instead of injecting the ExitCodeHolder via the constructor,
-        // we retrieve the shared instance from SpectreHostExtensions.
-        protected ExitCodeHolder _exitCodeHolder => SpectreHostExtensions.exitCodeHolder;
-
         public override int Execute(CommandContext context, TSettings settings)
         {
-            // Retrieve the ambient cancellation token that was set by RunAsync.
-            var token = CommandCancellationTokenContext.Token.Value;
-            int exitCode = ExecuteAsync(context, settings, token).GetAwaiter().GetResult();
-            if (!_exitCodeHolder.ExitCode.HasValue)
-                _exitCodeHolder.ExitCode = exitCode;
+            int exitCode = ExecuteAsync(context, settings, CommandAppHostedService.CommandAppShutdownTokenSource.Token).GetAwaiter().GetResult();
+            if (!CommandAppHostedService.CommandAppExitCode.HasValue)
+            {
+                CommandAppHostedService.CommandAppExitCode = exitCode;
+                if (!CommandAppHostedService.CommandAppShutdownTokenSource.IsCancellationRequested)
+                {
+                    CommandAppHostedService.CommandAppShutdownTokenSource.Cancel();
+                }
+            }
+                
             return exitCode;
         }
 

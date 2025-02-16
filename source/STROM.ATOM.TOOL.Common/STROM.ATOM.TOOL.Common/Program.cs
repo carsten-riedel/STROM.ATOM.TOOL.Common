@@ -5,11 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+
+using Spectre.Console.Cli;
 
 using STROM.ATOM.TOOL.Common.Commands;
-using STROM.ATOM.TOOL.Common.Extensions.CommandAppExtensions;
-using STROM.ATOM.TOOL.Common.Extensions.s;
 using STROM.ATOM.TOOL.Common.Extensions.SpectreHostExtensions;
+using STROM.ATOM.TOOL.Common.NewFolder;
 using STROM.ATOM.TOOL.Common.Serilog;
 using STROM.ATOM.TOOL.Common.Services;
 using STROM.ATOM.TOOL.Common.Spectre;
@@ -18,12 +21,22 @@ namespace STROM.ATOM.TOOL.Common
 {
     public class Program
     {
+
+        public static LoggingLevelSwitch levelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
+
         public static async Task<int> Main(string[] args)
         {
+            var s2 = TaskHelper.MapDateTimeToUShorts();
+
+            var ssd = TaskHelper.MapUShortsToDateTime(s2.HighPart, s2.LowPart);
+            //var s2 = TaskHelper.GetYearSeconds2();
+
+            levelSwitch.MinimumLevel = LogEventLevel.Warning;
+
             var loggconfig = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
+                .MinimumLevel.ControlledBy(levelSwitch)
                 .Enrich.FromLogContext()
-                .WriteTo.Async(e => e.Console(theme: Theme.ClarionDusk))
+                .WriteTo.Console(theme: Theme.ClarionDusk)
                 .CreateLogger();
 
             Log.Logger = loggconfig;
@@ -33,36 +46,27 @@ namespace STROM.ATOM.TOOL.Common
                 .ConfigureServices((context, services) =>
                 {
                     // Register shared services.
-                    services.AddSingleton<IGreeter, HelloWorldGreeter>();
+                    services.AddSingleton<IOsVersionService, OsVersionService>();
                 })
-                .AddSpectreCommandApp(config =>
+                .AddCommandAppHostedService(config =>
                 {
-                    // Register your abortable command.
-                    config.AddCommand<DefaultAbortableCommand>("default").WithDescription("The default abortable command.");
-                    config.AddCommand<DefaultAbortableCommand2>("default2").WithDescription("The default abortable command2.");
+                    config.SetApplicationName("satcom");
+                    config.AddCommand<DumpCommand>("dump").WithDescription("The dump command.").WithExample(new[] { "dump", "osversion" }).WithExample(new[] { "dump", "osversion", "--loglevel verbose", "--forceSuccess true" }); ;
                 }, args).UseSerilog(Log.Logger).UseConsoleLifetime(e => { e.SuppressStatusMessages = true; })
-                .Build();
+                ;
 
-            await host.RunAsync();
+            var app = host.Build();
+
+            await app.StartAsync();
+            await app.WaitForShutdownAsync();
+
+            
 
             // Capture the exit code from the shared ExitCodeHolder.
-            int exitCode = SpectreHostExtensions.exitCodeHolder.ExitCode ?? -999;
+            int exitCode = CommandAppHostedService.CommandAppExitCode ?? -3;
             if (exitCode == 0)
             {
-                MarkupResult result = await SpectreConsole.WriteTemplateAsync(
-                    "{roleName}: {roleValue}, {nameName}: {nameValue}, {messageName}: {messageValue}",
-                    new object[] {
-                                "[lightsteelblue1 on grey]", "[lightsteelblue1 on black]",
-                                    "[yellow on grey]", "[yellow on black]",
-                                    "[lime on grey]", "[lime on black]",
-                    },
-                    "Role", "Assistant".PadLimit(10),
-                    "Name", "Bob".PadLimit(10),
-                    "Message", DateTime.Now.ToString("D").PadLimit(55)
-                    );
-
-                Spectre.SpectreConsole.WriteLine("Execution succeeded with exit code {ExitCode}", new object[] {"[underline red]" }, exitCode);   
-                Log.Logger.Information(result.MessageTemplate, result.PropertyValues);
+                Log.Logger.Information("Execution succeeded with exit code {ExitCode}", exitCode);
             }
             else
             {
@@ -70,6 +74,8 @@ namespace STROM.ATOM.TOOL.Common
             }
 
             await Log.CloseAndFlushAsync();
+
+            app.Dispose();
 
             // Return the exit code.
             return exitCode;

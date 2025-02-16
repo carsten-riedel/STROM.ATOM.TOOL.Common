@@ -1,25 +1,138 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+
+	<UsingTask TaskName="MapDateTimeToUShortsTask" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<!-- Output string that contains the low 16-bit part -->
+			<LowPart ParameterType="System.String" Output="true" />
+			<!-- Output string that contains the normal high 16-bit part -->
+			<HighPart ParameterType="System.String" Output="true" />
+		</ParameterGroup>
+		<Task>
+			<Code Type="Fragment" Language="cs">
+				<![CDATA[
+      // <summary>
+      // Maps the current DateTime to two ushort parts.
+      // </summary>
+      // <remarks>
+      // This code calculates the total seconds elapsed since the start of the current year,
+      // discards the lower 6 bits (i.e. one low part unit equals 64 seconds),
+      // splits the result into a low part (lower 16 bits) and a normal high part (upper bits),
+      // and then computes a composite high part by adding (year * 10) to the normal high part.
+      // The year must not exceed 6553.
+      // </remarks>
+      int discardBits = 6;
+      DateTime now = DateTime.Now;
+      
+      if (now.Year > 6553)
+      {
+          throw new ArgumentOutOfRangeException("inputDate", "Year must not be greater than 6553.");
+      }
+      
+      DateTime startOfYear = new DateTime(now.Year, 1, 1, 0, 0, 0, now.Kind);
+      int seconds = (int)(now - startOfYear).TotalSeconds;
+      
+      // Compute the shifted seconds by discarding the lower 6 bits.
+      int computedLow = seconds >> discardBits;
+      ushort low = (ushort)(computedLow & 0xFFFF);
+      ushort high = (ushort)(computedLow >> 16);
+      
+      // Composite high part: combine the normal high part with the year offset (year * 10).
+      int highPartFull = high + (now.Year * 10);
+      
+      LowPart = low.ToString();
+      HighPart = highPartFull.ToString();
+      return true;
+      ]]>
+			</Code>
+		</Task>
+	</UsingTask>
+
+	<Target Name="GenerateHighPartLowPart" Condition=" '$(LowPart)' == '' and '$(HighPart)' == '' "  BeforeTargets="PrepareForBuild;Build;Rebuild;Clean;Publish" AfterTargets="Build">
+		<MapDateTimeToUShortsTask>
+			<Output TaskParameter="LowPart" PropertyName="LowPart" />
+			<Output TaskParameter="HighPart" PropertyName="HighPart" />
+		</MapDateTimeToUShortsTask>
+		<Message Text="Year Seconds Low Part: $(LowPart), High Part: $(HighPart)" Importance="high" />
+		<PropertyGroup>
+			<AssemblyVersion>0.0.$(HighPart).$(LowPart)</AssemblyVersion>
+		</PropertyGroup>
+	</Target>
+
 	<!-- https://learn.microsoft.com/de-de/dotnet/core/tools/global-tools-how-to-create -->
 
 	<!-- dotnet tool list -g -->
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
 		<TargetFrameworks>net7.0;net8.0</TargetFrameworks>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<DebugType>embedded</DebugType>
+		<!-- Enable unsafe code -->
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AssemblyVersion>0.0.$(HighPart).$(LowPart)</AssemblyVersion>
+		<Version>0.0.$(HighPart).$(LowPart)</Version>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<IsPublishable>true</IsPublishable>
+		<IsTestProject>false</IsTestProject>
+		<PackAsTool>true</PackAsTool>
+	</PropertyGroup>
+
+
+	<PropertyGroup>
+		<Stage Condition="'$(Stage)' == ''">build</Stage>
+		<DefineConstants>$(DefineConstants);$(Stage)</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Stage)' == 'pack' AND '$(PackAsTool)' == 'true' ">
+		<ToolCommandName>satcom</ToolCommandName>
+	</PropertyGroup>
+
+	
+	
+	<PropertyGroup Condition="'$(Stage)' == 'publish' OR '$(Stage)' == 'pack' OR '$(Stage)' == 'build' " >
+		<Copyright>Copyright © 2025 Carsten Riedel</Copyright>
+		<Company></Company>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Stage)' == 'pack'">
+		<PackageOutputPath>$(MSBuildThisFileDirectory)\bin\Pack\$(Configuration)</PackageOutputPath>
+		<Authors>Carsten Riedel</Authors>
+		<Owners>Carsten Riedel</Owners>
+		<PackageId>$(AssemblyName)</PackageId>
+		<PackageTags>dotnet;tool;STROM;satcom</PackageTags>
+		<PackageProjectUrl>https://github.com/carsten-riedel/STROM.ATOM.TOOL.Common</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/carsten-riedel/STROM.ATOM.TOOL.Common</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Stage)' == 'publish'">
+		<!-- Specify the target runtime; adjust as needed (e.g., win-x86, linux-x64) -->
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<PublishDir>$(ProjectDir)bin\Publish\$(Configuration)\$(TargetFramework)</PublishDir>
+		<SelfContained Condition="">true</SelfContained>
+		<!-- Enable single-file publish -->
+		<PublishSingleFile>true</PublishSingleFile>
+		<!-- Enable compression to reduce the size of the single-file executable -->
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+		<!-- Ensure native libraries are extracted at runtime -->
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	</PropertyGroup>
+
+
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-	  <PackageReference Include="Serilog" Version="4.2.0" />
-	  <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
-	  <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
-	  <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-	  <PackageReference Include="Spectre.Console" Version="0.49.1" />
-	  <PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Spectre.Console" Version="0.49.1" />
+		<PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
 	</ItemGroup>
 
 </Project>
