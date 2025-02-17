@@ -69,8 +69,7 @@ if (![string]::IsNullOrEmpty($nugetSuffix)) {
     # https://int.nugettest.org/
     # dotnet nuget add source https://apiint.nugettest.org/v3/index.json --name NugetTestFeed
     # dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
-    #dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
-    dotnet nuget add source --username carsten-riedel --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+    dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
     dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
 }
 else {
