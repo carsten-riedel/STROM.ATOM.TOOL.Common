@@ -115,7 +115,7 @@
 		</Description>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>License.txt</PackageLicenseFile>
-		<PackageIcon>Icon.png</PackageIcon>
+		<PackageIcon>STROM128.png</PackageIcon>
 		<PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildThisFileDirectory)_PackageProps\ReleaseNotes.txt"))</PackageReleaseNotes>
 	</PropertyGroup>
 
