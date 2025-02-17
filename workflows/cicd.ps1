@@ -5,6 +5,8 @@ if (Test-Path "$PSScriptRoot/cicd_secrets.ps1") {
     . "$PSScriptRoot\cicd_secrets.ps1"
     Write-Host "Secrets loaded from file."
 } else {
+    $NUGET_PAT = $args[0]
+    $NUGET_TEST_PAT = $args[1]
     Write-Host "Secrets will be taken from args."
 }
 
