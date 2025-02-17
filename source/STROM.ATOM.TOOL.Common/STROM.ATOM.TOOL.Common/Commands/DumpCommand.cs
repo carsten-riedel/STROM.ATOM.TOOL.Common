@@ -73,7 +73,7 @@ namespace STROM.ATOM.TOOL.Common.Commands
                     return ValidationResult.Error("Required argument <Target> cannot be empty.");
                 }
 
-                if (Delay >= 0)
+                if (Delay < 0)
                 {
                     return ValidationResult.Error("Delay -d|--delay must be a positive value.");
                 }
@@ -99,6 +99,26 @@ namespace STROM.ATOM.TOOL.Common.Commands
                 if (settings.Target!.Equals("osversion", StringComparison.OrdinalIgnoreCase))
                 {
                     await _osVersionService.ShowOsVersion(settings.Delay, cancellationToken);
+                    _logger.LogInformation("{CommandName} command ended.", context.Name);
+                    return 0;
+                }
+                else if (settings.Target!.Equals("envars", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (System.Collections.DictionaryEntry envars in Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Process))
+                    {
+                        var result = await SpectreConsole.WriteTemplateAsync("{EnvarTarget}: {Key} = {Value}", new string[] { "[white]", "[dodgerblue1]", "[lightskyblue1]" },nameof(EnvironmentVariableTarget.Process), envars.Key, envars.Value);
+                        _logger.LogInformation(result.MessageTemplate, result.PropertyValues);
+                    }
+                    foreach (System.Collections.DictionaryEntry envars in Environment.GetEnvironmentVariables(EnvironmentVariableTarget.User))
+                    {
+                        var result = await SpectreConsole.WriteTemplateAsync("{EnvarTarget}: {Key} = {Value}", new string[] { "[white]", "[dodgerblue1]", "[lightskyblue1]" }, nameof(EnvironmentVariableTarget.User), envars.Key, envars.Value);
+                        _logger.LogInformation(result.MessageTemplate, result.PropertyValues);
+                    }
+                    foreach (System.Collections.DictionaryEntry envars in Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Machine))
+                    {
+                        var result = await SpectreConsole.WriteTemplateAsync("{EnvarTarget}: {Key} = {Value}", new string[] { "[white]", "[dodgerblue1]", "[lightskyblue1]" }, nameof(EnvironmentVariableTarget.Machine), envars.Key, envars.Value);
+                        _logger.LogInformation(result.MessageTemplate, result.PropertyValues);
+                    }
                     _logger.LogInformation("{CommandName} command ended.", context.Name);
                     return 0;
                 }

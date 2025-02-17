@@ -16,6 +16,8 @@ dotnet tool install -g STROM.ATOM.TOOL.Common
 Use
 ```
 satcom -h
+satcom dump osversion
+satcom dump envars
 ```
 
 ## Documentation
