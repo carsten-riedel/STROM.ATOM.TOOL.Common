@@ -69,7 +69,8 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> After publish ========================================================"
 }
 
-$basePath = "$topLevelDirectory/source"
+
+$basePath = [System.IO.Path]::Combine($topLevelDirectory, "source")
 
 $pattern = "*$nugetSuffix.nupkg"
 
