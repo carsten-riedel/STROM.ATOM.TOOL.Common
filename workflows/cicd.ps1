@@ -31,12 +31,12 @@ Ensure-Variable -Variable { $NUGET_PAT } -ExitIfNullOrEmpty -HideValue
 Ensure-Variable -Variable { $NUGET_TEST_PAT } -ExitIfNullOrEmpty -HideValue
 
 #Required directorys
-$targetDirPack = "$topLevelDirectory\output\pack"
-$targetDirPublish = "$topLevelDirectory\output\publish"
-$targetDirSetup = "$topLevelDirectory\output\setup"
-[System.IO.Directory]::CreateDirectory("$targetDirPack") | Out-Null
-[System.IO.Directory]::CreateDirectory("$targetDirPublish") | Out-Null
-[System.IO.Directory]::CreateDirectory("$targetDirSetup") | Out-Null
+$targetDirPack    = [System.IO.Path]::Combine($topLevelDirectory, "output", "pack")
+$targetDirPublish = [System.IO.Path]::Combine($topLevelDirectory, "output", "publish")
+$targetDirSetup   = [System.IO.Path]::Combine($topLevelDirectory, "output", "setup")
+[System.IO.Directory]::CreateDirectory($targetDirPack) | Out-Null
+[System.IO.Directory]::CreateDirectory($targetDirPublish) | Out-Null
+[System.IO.Directory]::CreateDirectory($targetDirSetup) | Out-Null
 
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
