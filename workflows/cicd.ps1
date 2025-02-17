@@ -19,7 +19,6 @@ Ensure-Variable -Variable { $currentBranch } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $currentBranchRoot } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $topLevelDirectory } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $nugetSuffix }
-Ensure-Variable -Variable { $PAT } -ExitIfNullOrEmpty -HideValue
 Ensure-Variable -Variable { $NUGET_PAT } -ExitIfNullOrEmpty -HideValue
 Ensure-Variable -Variable { $NUGET_TEST_PAT } -ExitIfNullOrEmpty -HideValue
 
