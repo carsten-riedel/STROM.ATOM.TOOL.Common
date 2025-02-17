@@ -79,11 +79,17 @@ if ($currentBranchRoot.ToLower() -in @("master", "main")) {
     # For branches "master" or "main", push the package to the official NuGet feed.
     # Official NuGet feed: https://api.nuget.org/v3/index.json
     dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_PAT --source https://api.nuget.org/v3/index.json
+    
+    dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+    dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
 }
 elseif ($currentBranchRoot.ToLower() -in @("release")) {
     # For the "release" branch, push the package to the test NuGet feed.
     # Test NuGet feed: https://apiint.nugettest.org/v3/index.json
     dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+    
+    dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+    dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
 }
 else {
     # For all other branches, add the GitHub NuGet feed and push the package there.
