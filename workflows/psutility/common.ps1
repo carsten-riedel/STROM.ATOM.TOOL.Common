@@ -120,6 +120,79 @@ function Find-FilesByPattern {
     }
 }
 
+function Delete-FilesByPattern {
+    <#
+    .SYNOPSIS
+        Deletes files matching a specified pattern and optionally removes empty directories.
+
+    .DESCRIPTION
+        This function recursively searches for files under the given path that match the provided
+        pattern and deletes them. After deleting the files, if the optional parameter 'DeleteEmptyDirs'
+        is set to $true (default), it will also remove any directories that become empty as a result
+        of the deletions.
+
+    .PARAMETER Path
+        The directory path in which to search for files.
+
+    .PARAMETER Pattern
+        The file search pattern (e.g., "*.log", "*.tmp").
+
+    .PARAMETER DeleteEmptyDirs
+        Optional. If set to $true (default), any directories that become empty after deletion are removed.
+
+    .EXAMPLE
+        PS> Delete-FilesByPattern -Path "C:\Temp" -Pattern "*.log"
+        Deletes all .log files under C:\Temp and its subdirectories, and then removes any empty directories.
+
+    .NOTES
+        Ensure you have the necessary permissions to delete files and directories.
+    #>
+
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Pattern,
+
+        [Parameter()]
+        [bool]$DeleteEmptyDirs = $true
+    )
+
+    # Validate that the provided path exists and is a directory.
+    if (-not (Test-Path -Path $Path -PathType Container)) {
+        throw "The specified path '$Path' does not exist or is not a directory."
+    }
+
+    try {
+        # Recursively search for files matching the given pattern.
+        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse -File -ErrorAction Stop
+        foreach ($file in $files) {
+            Remove-Item -Path $file.FullName -Force -ErrorAction Stop
+            Write-Verbose "Deleted file: $($file.FullName)"
+        }
+
+        if ($DeleteEmptyDirs) {
+            # Get all directories under $Path in descending order by depth.
+            $dirs = Get-ChildItem -Path $Path -Directory -Recurse | Sort-Object {
+                $_.FullName.Split([System.IO.Path]::DirectorySeparatorChar).Count
+            } -Descending
+
+            foreach ($dir in $dirs) {
+                # Check if directory is empty.
+                if (-not (Get-ChildItem -Path $dir.FullName -Force)) {
+                    Remove-Item -Path $dir.FullName -Force -ErrorAction SilentlyContinue
+                    Write-Verbose "Deleted empty directory: $($dir.FullName)"
+                }
+            }
+        }
+    }
+    catch {
+        Write-Error "An error occurred while deleting files or directories: $_"
+    }
+}
+
+
 function Get-GitCurrentBranch {
     <#
     .SYNOPSIS
@@ -177,20 +250,21 @@ function Get-GitCurrentBranch {
 function Get-GitTopLevelDirectory {
     <#
     .SYNOPSIS
-    Retrieves the top-level directory of the current Git repository.
+        Retrieves the top-level directory of the current Git repository.
 
     .DESCRIPTION
-    This function calls Git using 'git rev-parse --show-toplevel' to determine
-    the root directory of the current Git repository. If Git is not available
-    or the current directory is not within a Git repository, the function
-    returns an error.
+        This function calls Git using 'git rev-parse --show-toplevel' to determine
+        the root directory of the current Git repository. If Git is not available
+        or the current directory is not within a Git repository, the function returns
+        an error. The function converts any forward slashes to the system's directory
+        separator (works correctly on both Windows and Linux).
 
     .EXAMPLE
-    PS C:\Projects\MyRepo> Get-GitTopLevelDirectory
-    C:\Projects\MyRepo
+        PS C:\Projects\MyRepo> Get-GitTopLevelDirectory
+        C:\Projects\MyRepo
 
     .NOTES
-    Ensure Git is installed and available in your system's PATH.
+        Ensure Git is installed and available in your system's PATH.
     #>
 
     try {
@@ -202,12 +276,15 @@ function Get-GitTopLevelDirectory {
             return $null
         }
 
-        return $topLevel.Trim()
+        # Trim the result and replace forward slashes with the current directory separator.
+        $topLevel = $topLevel.Trim().Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+        return $topLevel
     }
     catch {
         Write-Error "Error retrieving Git top-level directory: $_"
     }
 }
+
 
 function Get-BranchRoot {
     <#
@@ -384,6 +461,46 @@ function Ensure-Variable {
     Write-Output "Variable Name: $varName, Value: $displayValue"
 }
 
+<#
+.SYNOPSIS
+    Sanitizes a branch name for use as a directory name.
 
+.DESCRIPTION
+    This function takes a branch name string, replaces invalid filename characters 
+    (as determined by System.IO.Path.GetInvalidFileNameChars) with underscores, 
+    and converts forward slashes (/) into the current directory separator 
+    (obtained via System.IO.Path.DirectorySeparatorChar).
 
+.PARAMETER BranchName
+    The branch name string to sanitize.
+
+.EXAMPLE
+    PS> $sanitizedBranch = Sanitize-BranchName -BranchName "feature/some/branch"
+    PS> Write-Host $sanitizedBranch
+#>
+function Sanitize-BranchName {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BranchName
+    )
+
+    # Get the invalid file name characters
+    $invalidChars = [System.IO.Path]::GetInvalidFileNameChars()
+
+    # Start with the original branch name
+    $sanitized = $BranchName
+
+    # Replace each invalid character with an underscore
+    foreach ($char in $invalidChars) {
+        $pattern = [Regex]::Escape($char)
+        $sanitized = $sanitized -replace $pattern, "_"
+    }
+
+    # Replace forward slashes with the current directory separator
+    $dirSep = [System.IO.Path]::DirectorySeparatorChar
+    $sanitized = $sanitized -replace '/', $dirSep
+
+    return $sanitized
+}
 

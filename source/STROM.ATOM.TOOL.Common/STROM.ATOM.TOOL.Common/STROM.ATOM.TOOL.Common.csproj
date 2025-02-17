@@ -72,7 +72,6 @@
 		<Stage Condition="'$(Stage)' == ''">build</Stage>
 		<HighPart Condition="'$(HighPart)' == ''">0</HighPart>
 		<LowPart Condition="'$(LowPart)' == ''">0</LowPart>
-		<NugetSuffix Condition="'$(NugetSuffix)' == ''">0</NugetSuffix>
 		<DefineConstants>$(DefineConstants);$(Stage)</DefineConstants>
 	</PropertyGroup>
 
@@ -86,8 +85,10 @@
 		<DebugType>embedded</DebugType>
 		<!-- Enable unsafe code -->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<AssemblyVersion>0.0.$(HighPart).$(LowPart)</AssemblyVersion>
-		<Version>0.0.$(HighPart).$(LowPart)$(NugetSuffix)</Version>
+		<VersionMajor>0</VersionMajor>
+		<VersionMinor>1</VersionMinor>
+		<AssemblyVersion>$(VersionMajor).$(VersionMinor).$(HighPart).$(LowPart)</AssemblyVersion>
+		<Version>$(VersionMajor).$(VersionMinor).$(HighPart).$(LowPart)$(NugetSuffix)</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -107,7 +108,8 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Stage)' == 'pack'">
-		<PackageOutputPath>$(MSBuildThisFileDirectory)\bin\Pack\$(Configuration)</PackageOutputPath>
+		<PackageOutputPath Condition="'$(TargetDirPack)' != ''">$(TargetDirPack)\$(AssemblyName)\$(SanitizedBranch)\$(AssemblyVersion)</PackageOutputPath>
+		<PackageOutputPath Condition="'$(TargetDirPack)' == ''">$(MSBuildThisFileDirectory)\bin\Pack\$(Configuration)\$(AssemblyName)\$(AssemblyVersion)</PackageOutputPath>
 		<Authors>Carsten Riedel</Authors>
 		<Owners>Carsten Riedel</Owners>
 		<PackageId>$(AssemblyName)</PackageId>
@@ -124,7 +126,6 @@
 		<PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildThisFileDirectory)_PackageProps\ReleaseNotes.txt"))</PackageReleaseNotes>
 	</PropertyGroup>
 
-
 	<ItemGroup Condition="'$(Stage)' == 'pack'">
 		<None Include="$(MSBuildProjectDirectory)\_PackageProps\**\*" Exclude="$(MSBuildProjectDirectory)\_PackageProps\ReleaseNotes.txt" Pack="true" PackagePath="" />
 	</ItemGroup>
@@ -134,7 +135,9 @@
 	<PropertyGroup Condition="'$(Stage)' == 'publish'">
 		<!-- Specify the target runtime; adjust as needed (e.g., win-x86, linux-x64) -->
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<PublishDir>$(ProjectDir)bin\Publish\$(Configuration)\$(TargetFramework)</PublishDir>
+		<PublishDir Condition="'$(TargetDirPublish)' != ''">$(TargetDirPublish)\$(AssemblyName)\$(SanitizedBranch)\$(AssemblyVersion)</PublishDir>
+		<PublishDir Condition="'$(TargetDirPublish)' == ''">$(MSBuildThisFileDirectory)\bin\Publish\$(Configuration)\$(AssemblyName)\$(AssemblyVersion)</PublishDir>
+
 		<SelfContained Condition="">true</SelfContained>
 		<!-- Enable single-file publish -->
 		<PublishSingleFile>true</PublishSingleFile>
