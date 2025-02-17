@@ -40,7 +40,7 @@ jobs:
 
   builddeploy:
     
-    if: (github.event_name == 'workflow_dispatch') || (github.event_name == 'repository_dispatch') ||  (github.event.head_commit.committer.name == 'Github')
+    if: (github.event_name == 'workflow_dispatch') || (github.event_name == 'repository_dispatch') || (github.event_name == 'push')
  
     runs-on: ubuntu-latest
     
