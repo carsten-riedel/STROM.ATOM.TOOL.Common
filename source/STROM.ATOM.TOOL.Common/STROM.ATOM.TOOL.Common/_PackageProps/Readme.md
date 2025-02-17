@@ -13,7 +13,7 @@ Install/Update/Reinstall
 dotnet tool install -g STROM.ATOM.TOOL.Common
 ```
 
-Use
+## Use
 ```
 satcom -h
 satcom dump osversion

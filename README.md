@@ -1,4 +1,28 @@
-# STROM.ATOM.NS.Serilog.ConsoleThemes
+
+# STROM.ATOM.TOOL.Common 
+
+STROM.ATOM.TOOL.Common is a multi-purpose command-line .NET tool, containing a suite of helper functionalities designed for application development, CI/CD processes, and NuGet package management.
+
+## Prerequisites
+- .NET SDK: Ensure you have the .NET SDK installed on your machine. If not, download and install it from [the official .NET website](https://dotnet.microsoft.com/download).
+
+## Installing the Tool
+To install the tool globally on your machine, run the following command in your terminal:
+
+Install/Update/Reinstall
+```
+dotnet tool install -g STROM.ATOM.TOOL.Common
+```
+
+## Use
+```
+satcom -h
+satcom dump osversion
+satcom dump envars
+```
+
+### General STROM naming conventions
+---
 
 **STROM** is a lean, modular framework built on three layers:
 
@@ -17,30 +41,3 @@
 - **NETW10**: Targets Windows 10 features (e.g., `net7.0-windows10.0.19041.0`).
 - **PSWH**: Powershell Core modules.
 - **TOOL**: dotnet tool.
-
-This structure fosters scalable, maintainable systems by clearly separating application logic from library functionalities.
-
-# How to use STROM.ATOM.NS.Serilog.ConsoleThemes
-
-
-## Overview
-
-**Example:**  
-`STORM.CELL.LOGSERVER` – A dedicated module for centralized logging operations.
-
-**Key Points:**
-- Encapsulates application-specific logic.
-- Enhances maintainability through isolation.
-- Optimizes resource allocation and execution control.
-
-**Example:**  
-`STORM.CELL.NS.Serilog.Themes` – A specialized library to extend Serilog with themed customization options.
-
-**Key Points:**
-- Provides targeted functionality with minimal footprint.
-- Simplifies dependency management.
-- Promotes reusability across different parts of the system.
-
----
-
-
