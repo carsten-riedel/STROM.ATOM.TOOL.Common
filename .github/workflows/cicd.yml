@@ -12,10 +12,12 @@ on:
       - 'workflows/**'
     branches:
       - 'master'
+      - 'main'
       - 'release'
       - 'develop'
       - 'hotfix'
       - 'master/**'
+      - 'main/**'
       - 'release/**'
       - 'develop/**'
       - 'hotfix/**'
