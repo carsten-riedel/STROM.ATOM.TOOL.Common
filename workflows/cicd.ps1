@@ -40,9 +40,9 @@ foreach ($solutionFile in $solutionFiles) {
     dotnet build $solutionFile.FullName -p:"Stage=build" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart)
     Write-Output "===> After build =========================================================="
 
-    Write-Output "===> Before build ========================================================="
+    Write-Output "===> Before test =========================================================="
     dotnet test $solutionFile.FullName -p:"Stage=test" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart)
-    Write-Output "===> After build =========================================================="
+    Write-Output "===> After test ==========================================================="
 
     Write-Output "===> Before pack =========================================================="
     dotnet pack $solutionFile.FullName -p:"Stage=pack" -c Release -p:"HighPart=$($result.HighPart)" -p:"LowPart=$($result.LowPart)" -p:"NugetSuffix=$nugetSuffix"

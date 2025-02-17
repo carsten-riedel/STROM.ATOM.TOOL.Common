@@ -67,7 +67,12 @@ namespace STROM.ATOM.TOOL.Common
                 Log.Logger.Error("Command exited with error exit code {ExitCode}", exitCode);
             }
 
-            await Log.CloseAndFlushAsync();
+#if NET6_0_OR_GREATER
+                await Log.CloseAndFlushAsync();
+
+#else
+            Log.CloseAndFlush();
+#endif
 
             app.Dispose();
 
