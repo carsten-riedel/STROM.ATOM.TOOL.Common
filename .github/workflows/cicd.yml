@@ -13,9 +13,11 @@ on:
     branches:
       - 'master'
       - 'release'
+      - 'develop'
       - 'hotfix'
       - 'master/**'
       - 'release/**'
+      - 'develop/**'
       - 'hotfix/**'
   repository_dispatch:
     types: 
@@ -66,6 +68,6 @@ jobs:
       run: pwsh --version
 
     - name: Workflow Build/Deploy
-      run: workflows/cicd.ps1 "${{ secrets.NUGET_PAT }}" "${{ secrets.NUGET_TEST_PAT }}"
+      run: workflows/cicd.ps1 "${{ secrets.NUGET_GITHUB_PUSH }}" "${{ secrets.NUGET_PAT }}" "${{ secrets.NUGET_TEST_PAT }}"
       shell: pwsh 
 

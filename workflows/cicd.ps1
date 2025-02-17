@@ -5,8 +5,9 @@ if (Test-Path "$PSScriptRoot/cicd_secrets.ps1") {
     . "$PSScriptRoot\cicd_secrets.ps1"
     Write-Host "Secrets loaded from file."
 } else {
-    $NUGET_PAT = $args[0]
-    $NUGET_TEST_PAT = $args[1]
+    $NUGET_GITHUB_PUSH = $args[0]
+    $NUGET_PAT = $args[1]
+    $NUGET_TEST_PAT = $args[2]
     Write-Host "Secrets will be taken from args."
 }
 
@@ -21,8 +22,11 @@ Ensure-Variable -Variable { $currentBranch } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $currentBranchRoot } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $topLevelDirectory } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $nugetSuffix }
+Ensure-Variable -Variable { $NUGET_GITHUB_PUSH } -ExitIfNullOrEmpty -HideValue
 Ensure-Variable -Variable { $NUGET_PAT } -ExitIfNullOrEmpty -HideValue
 Ensure-Variable -Variable { $NUGET_TEST_PAT } -ExitIfNullOrEmpty -HideValue
+
+
 
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 #$csprojFiles = Find-FilesByPattern -Path "C:\dev\github.com\carsten-riedel\STROM.ATOM.TOOL.Common\source" -Pattern "*.csproj"
@@ -58,14 +62,14 @@ $basePath = "$topLevelDirectory/source"
 
 $pattern = "*$nugetSuffix.nupkg"
 
-
 $firstFileMatch = Get-ChildItem -Path $basePath -Filter $pattern -File -Recurse | Select-Object -First 1
 
 if (![string]::IsNullOrEmpty($nugetSuffix)) {
     # When nugetSuffix is not null or empty, push using the test feed.
     # https://int.nugettest.org/
     # dotnet nuget add source https://apiint.nugettest.org/v3/index.json --name NugetTestFeed
-    dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+    # dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+    dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
 }
 else {
     # When nugetSuffix is null or empty, push to production.
