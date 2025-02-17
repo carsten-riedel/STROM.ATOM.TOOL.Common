@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace STROM.ATOM.TOOL.Common.NewFolder
+namespace STROM.ATOM.TOOL.Common.Utility
 {
     public static class TaskHelper
     {
@@ -75,7 +75,7 @@ namespace STROM.ATOM.TOOL.Common.NewFolder
             ushort high = (ushort)(computedLow >> 16);
 
             // Combine the high part with a year-based offset (year multiplied by 10).
-            int highPartFull = high + (now.Year * 10);
+            int highPartFull = high + now.Year * 10;
 
             // Return the two parts as strings.
             return (highPartFull.ToString(), low.ToString());
@@ -107,10 +107,10 @@ namespace STROM.ATOM.TOOL.Common.NewFolder
             int year = highFull / 10;
 
             // Reconstruct the original high bits.
-            int computedHigh = highFull - (year * 10);
+            int computedHigh = highFull - year * 10;
 
             // Rebuild the computedLow value by combining high and low parts.
-            int computedLow = (computedHigh << 16) | low;
+            int computedLow = computedHigh << 16 | low;
 
             // Recover the elapsed seconds (with lost lower resolution bits).
             int seconds = computedLow << discardBits;

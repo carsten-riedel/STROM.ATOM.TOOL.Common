@@ -88,6 +88,7 @@ namespace STROM.ATOM.TOOL.Common.Commands
                 if (settings.Target!.Equals("osversion", StringComparison.OrdinalIgnoreCase))
                 {
                     await _osVersionService.ShowOsVersion(cancellationToken);
+                    _logger.LogInformation("{CommandName} command ended.", context.Name);
                     return 0;
                 }
                 else

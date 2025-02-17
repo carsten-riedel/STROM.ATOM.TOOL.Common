@@ -1,5 +1,3 @@
-
-
 . "$PSScriptRoot\psutility\common.ps1"
 
 # Check if the secrets file exists before importing

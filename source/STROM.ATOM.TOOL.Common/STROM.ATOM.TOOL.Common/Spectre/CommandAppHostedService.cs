@@ -65,8 +65,21 @@ namespace STROM.ATOM.TOOL.Common.Spectre
                 }
             });
 
+            _commandApp.Configure(config =>
+            {
+                
+                // Register a callback when the command is canceled to cancel the CommandApp's token.
+                var ss = config.Settings;
+            });
 
-            _commandAppTask = Task.Run(() => _commandApp.Run(_args));
+            _commandAppTask = Task.Run(() => { 
+                CommandAppHostedService.CommandAppExitCode = _commandApp.Run(_args);
+                if (!_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)
+                {
+                    _hostApplicationLifetime.StopApplication();
+                }
+            });
+
             await Task.CompletedTask;
         }
 
@@ -80,6 +93,7 @@ namespace STROM.ATOM.TOOL.Common.Spectre
             }
         }
 
+    
 
     }
 

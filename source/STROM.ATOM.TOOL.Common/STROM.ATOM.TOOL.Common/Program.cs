@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +11,6 @@ using Spectre.Console.Cli;
 
 using STROM.ATOM.TOOL.Common.Commands;
 using STROM.ATOM.TOOL.Common.Extensions.SpectreHostExtensions;
-using STROM.ATOM.TOOL.Common.NewFolder;
 using STROM.ATOM.TOOL.Common.Serilog;
 using STROM.ATOM.TOOL.Common.Services;
 using STROM.ATOM.TOOL.Common.Spectre;
@@ -26,10 +24,6 @@ namespace STROM.ATOM.TOOL.Common
 
         public static async Task<int> Main(string[] args)
         {
-            var s2 = TaskHelper.MapDateTimeToUShorts();
-
-            var ssd = TaskHelper.MapUShortsToDateTime(s2.HighPart, s2.LowPart);
-            //var s2 = TaskHelper.GetYearSeconds2();
 
             levelSwitch.MinimumLevel = LogEventLevel.Warning;
 
