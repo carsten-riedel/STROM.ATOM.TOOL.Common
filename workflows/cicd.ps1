@@ -70,11 +70,10 @@ foreach ($solutionFile in $solutionFiles) {
 }
 
 
-$basePath = [System.IO.Path]::Combine($topLevelDirectory, "source")
 
 $pattern = "*$nugetSuffix.nupkg"
 
-$firstFileMatch = Get-ChildItem -Path $basePath -Filter $pattern -File -Recurse | Select-Object -First 1
+$firstFileMatch = Get-ChildItem -Path $targetDirPack -Filter $pattern -File -Recurse | Select-Object -First 1
 
 if ($currentBranchRoot.ToLower() -in @("master", "main")) {
     # For branches "master" or "main", push the package to the official NuGet feed.
