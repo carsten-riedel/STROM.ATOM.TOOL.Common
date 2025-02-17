@@ -4,15 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using Spectre.Console.Cli;
 
-
 namespace STROM.ATOM.TOOL.Common.Spectre
 {
-
     /// <summary>
     /// A hosted service that runs the Spectre.CommandApp asynchronously.
     /// When the CommandApp finishes (or is canceled), it signals the host to stop.
@@ -28,7 +27,7 @@ namespace STROM.ATOM.TOOL.Common.Spectre
         private Task? _commandAppTask;
         public static CancellationTokenSource CommandAppShutdownTokenSource = new CancellationTokenSource();
 
-        public CommandAppHostedService(CommandApp commandApp, ILogger<CommandAppHostedService> logger, IHostApplicationLifetime hostApplicationLifetime )
+        public CommandAppHostedService(CommandApp commandApp, ILogger<CommandAppHostedService> logger, IHostApplicationLifetime hostApplicationLifetime)
         {
             _commandApp = commandApp;
             _logger = logger;
@@ -67,13 +66,13 @@ namespace STROM.ATOM.TOOL.Common.Spectre
 
             _commandApp.Configure(config =>
             {
-                
                 // Register a callback when the command is canceled to cancel the CommandApp's token.
                 var ss = config.Settings;
             });
 
-            _commandAppTask = Task.Run(() => { 
-                CommandAppHostedService.CommandAppExitCode = _commandApp.Run(_args);
+            _commandAppTask = Task.Run(async () =>
+            {
+                CommandAppHostedService.CommandAppExitCode = await _commandApp.RunAsync(_args);
                 if (!_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)
                 {
                     _hostApplicationLifetime.StopApplication();
@@ -92,10 +91,5 @@ namespace STROM.ATOM.TOOL.Common.Spectre
                 await _commandAppTask;
             }
         }
-
-    
-
     }
-
-
 }

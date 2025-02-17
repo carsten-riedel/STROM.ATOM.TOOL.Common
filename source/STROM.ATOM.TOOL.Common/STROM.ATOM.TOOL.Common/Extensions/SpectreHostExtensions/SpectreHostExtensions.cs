@@ -1,16 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 using Spectre.Console.Cli;
 
-using STROM.ATOM.TOOL.Common.Services;
 using STROM.ATOM.TOOL.Common.Spectre;
 
 namespace STROM.ATOM.TOOL.Common.Extensions.SpectreHostExtensions
@@ -20,7 +14,6 @@ namespace STROM.ATOM.TOOL.Common.Extensions.SpectreHostExtensions
     /// </summary>
     public static class SpectreHostExtensions
     {
- 
         /// <summary>
         /// Configures and registers the Spectre.CommandApp as well as the hosted service that runs it asynchronously.
         /// Also registers the shared ExitCodeHolder.

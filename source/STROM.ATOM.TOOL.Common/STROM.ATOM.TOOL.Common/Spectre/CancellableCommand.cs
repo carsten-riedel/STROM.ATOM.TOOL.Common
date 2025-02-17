@@ -24,12 +24,8 @@ namespace STROM.ATOM.TOOL.Common.Spectre
             if (!CommandAppHostedService.CommandAppExitCode.HasValue)
             {
                 CommandAppHostedService.CommandAppExitCode = exitCode;
-                if (!CommandAppHostedService.CommandAppShutdownTokenSource.IsCancellationRequested)
-                {
-                    CommandAppHostedService.CommandAppShutdownTokenSource.Cancel();
-                }
             }
-                
+
             return exitCode;
         }
 

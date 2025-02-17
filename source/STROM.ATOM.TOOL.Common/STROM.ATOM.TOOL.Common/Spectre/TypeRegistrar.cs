@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
+
 using Spectre.Console.Cli;
 
 namespace STROM.ATOM.TOOL.Common.Spectre
@@ -15,6 +12,7 @@ namespace STROM.ATOM.TOOL.Common.Spectre
     public class TypeRegistrar : ITypeRegistrar
     {
         private readonly IServiceCollection _builder;
+
         public TypeRegistrar(IServiceCollection builder) => _builder = builder;
 
         public ITypeResolver Build() => new TypeResolver(_builder.BuildServiceProvider());

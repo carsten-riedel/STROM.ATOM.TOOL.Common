@@ -19,12 +19,10 @@ namespace STROM.ATOM.TOOL.Common
 {
     public class Program
     {
-
         public static LoggingLevelSwitch levelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
 
         public static async Task<int> Main(string[] args)
         {
-
             levelSwitch.MinimumLevel = LogEventLevel.Warning;
 
             var loggconfig = new LoggerConfiguration()
@@ -54,8 +52,6 @@ namespace STROM.ATOM.TOOL.Common
             await app.StartAsync();
             await app.WaitForShutdownAsync();
 
-            
-
             // Capture the exit code from the shared ExitCodeHolder.
             int exitCode = CommandAppHostedService.CommandAppExitCode ?? -3;
             if (exitCode == 0)
@@ -68,7 +64,7 @@ namespace STROM.ATOM.TOOL.Common
             }
 
 #if NET6_0_OR_GREATER
-                await Log.CloseAndFlushAsync();
+            await Log.CloseAndFlushAsync();
 
 #else
             Log.CloseAndFlush();

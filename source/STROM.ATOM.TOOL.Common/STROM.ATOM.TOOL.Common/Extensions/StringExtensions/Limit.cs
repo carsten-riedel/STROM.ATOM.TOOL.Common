@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace STROM.ATOM.TOOL.Common.Extensions.s
+namespace STROM.ATOM.TOOL.Common.Extensions.StringExtensions
 {
     public static class StringExtensions
     {

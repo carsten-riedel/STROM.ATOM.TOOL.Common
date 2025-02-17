@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace STROM.ATOM.TOOL.Common.Utility
 {
-    public static class TaskHelper
+    public static class Utility
     {
-
         /// <summary>
         /// Maps a DateTime to two ushort values (encoded as strings) representing a high and low part.
         /// </summary>
@@ -81,7 +76,6 @@ namespace STROM.ATOM.TOOL.Common.Utility
             return (highPartFull.ToString(), low.ToString());
         }
 
-
         /// <summary>
         /// Reconstructs a DateTime from the provided high and low parts.
         /// </summary>
@@ -121,11 +115,5 @@ namespace STROM.ATOM.TOOL.Common.Utility
             // Return the DateTime by adding the elapsed seconds.
             return startOfYear.AddSeconds(seconds);
         }
-
-
-
     }
-
-
-
 }

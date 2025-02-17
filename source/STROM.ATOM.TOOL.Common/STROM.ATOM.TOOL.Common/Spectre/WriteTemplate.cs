@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -30,8 +27,6 @@ namespace STROM.ATOM.TOOL.Common.Spectre
     /// </summary>
     public static class SpectreConsole
     {
-
-
         /// <summary>
         /// Asynchronously calls the synchronous WriteLine method.
         /// </summary>
@@ -136,5 +131,4 @@ namespace STROM.ATOM.TOOL.Common.Spectre
             };
         }
     }
-
 }

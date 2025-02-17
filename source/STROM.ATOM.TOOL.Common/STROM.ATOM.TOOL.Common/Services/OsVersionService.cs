@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Serilog.Core;
-using Serilog.Events;
-
-using Spectre.Console;
+﻿using System.Threading.Tasks;
 
 namespace STROM.ATOM.TOOL.Common.Services
 {
@@ -24,7 +15,7 @@ namespace STROM.ATOM.TOOL.Common.Services
         /// <summary>
         /// Displays the current operating system version.
         /// </summary>
-        Task ShowOsVersion(CancellationToken cancellationToken);
+        Task ShowOsVersion(int delay, CancellationToken cancellationToken);
     }
 
     /// <summary>
@@ -40,10 +31,10 @@ namespace STROM.ATOM.TOOL.Common.Services
         }
 
         /// <inheritdoc />
-        public async Task ShowOsVersion(CancellationToken cancellationToken)
+        public async Task ShowOsVersion(int delay,CancellationToken cancellationToken)
         {
             _logger.LogDebug("Displaying the operating system version...");
-            await Task.Delay(5000, cancellationToken);
+            await Task.Delay(delay, cancellationToken);
             Console.WriteLine($"{Environment.OSVersion}");
             _logger.LogDebug("Operating system version displayed.");
         }

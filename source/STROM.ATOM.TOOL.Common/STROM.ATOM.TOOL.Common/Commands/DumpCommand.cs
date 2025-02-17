@@ -23,6 +23,7 @@ namespace STROM.ATOM.TOOL.Common.Commands
     {
         //private readonly IGreeter _greeter;
         private readonly ILogger<DumpCommand> _logger;
+
         private readonly IOsVersionService _osVersionService;
 
         private int baseErrorCode = 10;
@@ -55,6 +56,11 @@ namespace STROM.ATOM.TOOL.Common.Commands
             [CommandOption("-l|--loglevel")]
             public LogEventLevel LogEventLevel { get; init; }
 
+            [Description("Command delay")]
+            [DefaultValue(5000)]
+            [CommandOption("-d|--delay")]
+            public int Delay { get; init; }
+
             [Description("Throws and errorcode if command is not found.")]
             [DefaultValue(false)]
             [CommandOption("-f|--forceSuccess")]
@@ -64,7 +70,12 @@ namespace STROM.ATOM.TOOL.Common.Commands
             {
                 if (String.IsNullOrWhiteSpace(Target))
                 {
-                    return ValidationResult.Error("Required argument <Target> cannot be empty");
+                    return ValidationResult.Error("Required argument <Target> cannot be empty.");
+                }
+
+                if (Delay >= 0)
+                {
+                    return ValidationResult.Error("Delay -d|--delay must be a positive value.");
                 }
 
                 return ValidationResult.Success();
@@ -87,7 +98,7 @@ namespace STROM.ATOM.TOOL.Common.Commands
             {
                 if (settings.Target!.Equals("osversion", StringComparison.OrdinalIgnoreCase))
                 {
-                    await _osVersionService.ShowOsVersion(cancellationToken);
+                    await _osVersionService.ShowOsVersion(settings.Delay, cancellationToken);
                     _logger.LogInformation("{CommandName} command ended.", context.Name);
                     return 0;
                 }
@@ -100,7 +111,7 @@ namespace STROM.ATOM.TOOL.Common.Commands
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex,"{CommandName} command canceled internally.", context.Name);
+                _logger.LogError(ex, "{CommandName} command canceled internally.", context.Name);
                 return BaseErrorCode;
             }
             catch (Exception ex)
