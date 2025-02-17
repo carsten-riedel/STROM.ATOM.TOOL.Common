@@ -64,6 +64,11 @@
 	<!-- dotnet tool list -g -->
 
 	<PropertyGroup>
+		<!-- Bestehende Properties -->
+		<NoWarn>$(NoWarn);NETSDK1138</NoWarn>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<Stage Condition="'$(Stage)' == ''">build</Stage>
 		<HighPart Condition="'$(HighPart)' == ''">0</HighPart>
 		<LowPart Condition="'$(LowPart)' == ''">0</LowPart>
