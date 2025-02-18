@@ -42,18 +42,27 @@ $targetDirSetup   = [System.IO.Path]::Combine($topLevelDirectory, "output", "set
 $targetDirTest   = [System.IO.Path]::Combine($topLevelDirectory, "output", "test")
 $targetDirOutdated   = [System.IO.Path]::Combine($topLevelDirectory, "output", "outdated")
 $targetLicenses   = [System.IO.Path]::Combine($topLevelDirectory, "output", "licenses")
+$targetConfigAllowedLicenses = [System.IO.Path]::Combine($topLevelDirectory, ".config", "allowed-licenses.json")
 Ensure-Variable -Variable { $targetDirPack } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirPublish } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirSetup } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirTest } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirOutdated } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetLicenses } -ExitIfNullOrEmpty
+Ensure-Variable -Variable { $targetConfigAllowedLicenses } -ExitIfNullOrEmpty
 [System.IO.Directory]::CreateDirectory($targetDirPack) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirPublish) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirSetup) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirTest) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirOutdated) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetLicenses) | Out-Null
+
+# Get current Git user settings once before the loop
+$gitUserLocal = git config user.name
+$gitMailLocal = git config user.email
+
+$gitTempUser = "Workflow"
+$gitTempMail = "carstenriedel@outlook.com"  # Assuming a placeholder email
 
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
@@ -62,11 +71,13 @@ Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
 foreach ($solutionFile in $solutionFiles) {
 
     Write-Output "===> Before nuget-license =================================================="
-    [System.IO.Directory]::CreateDirectory([System.IO.Path]::Combine($topLevelDirectory, "output", "licenses", "$($solutionFile.BaseName)")) | Out-Null
-    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$($topLevelDirectory)\.config\allowed-licenses.json" --output Table --file-output "$targetLicenses\$($solutionFile.BaseName)\licenses.txt"
-    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$($topLevelDirectory)\.config\allowed-licenses.json" --output JsonPretty --file-output "$targetLicenses\$($solutionFile.BaseName)\licenses.json"
+    $targetSolutionLicensesDir = [System.IO.Path]::Combine($topLevelDirectory, "output", "licenses", "$($solutionFile.BaseName)")
+    $targetSolutionLicensesFile = [System.IO.Path]::Combine($targetSolutionLicensesDir ,"licenses.json")
+    $targetSolutionLicensesFileOut = [System.IO.Path]::Combine($targetSolutionLicensesDir ,"THIRD-PARTY-NOTICES.txt")
+    [System.IO.Directory]::CreateDirectory($targetSolutionLicensesDir) | Out-Null
+    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$targetConfigAllowedLicenses" --output JsonPretty --file-output "$targetSolutionLicensesFile"
+    Generate-ThirdPartyNotices -LicenseJsonPath "$targetSolutionLicensesFile" -OutputPath "$targetSolutionLicensesFileOut"
     Write-Output "===> After nuget-license ==================================================="
-    Generate-ThirdPartyNotices -LicenseJsonPath "$targetLicenses\$($solutionFile.BaseName)\licenses.json" -OutputPath "$targetLicenses\$($solutionFile.BaseName)\THIRD-PARTY-NOTICES.txt"
 
     Write-Output "===> Before clean ========================================================="
     dotnet clean $solutionFile.FullName -p:"Stage=clean" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart)
@@ -102,49 +113,22 @@ foreach ($solutionFile in $solutionFiles) {
     dotnet nuget-license --input "$($solutionFile.FullName)" -a "$(topLevelDirectory)/.config/allowed-licenses.json" --output Table --file-output "$targetLicenses\licenses.txt"
     dotnet nuget-license --input "$($solutionFile.FullName)" -a "$(topLevelDirectory)/.config/allowed-licenses.json" --output JsonPretty --file-output "$targetLicenses\licenses.json"
     Write-Output "===> After nuget-license ==================================================="
-}
 
-# Get current Git user settings once before the loop
-$gitUserLocal = & git config user.name
-$gitMailLocal = & git config user.email
+    $gitUserLocal = & git config user.name
+    $gitMailLocal = & git config user.email
 
-# Set temporary user for workflow commits
-$gitTempUser = "Workflow"
-$gitTempMail = "carstenriedel@outlook.com"  # Assuming a placeholder email
+    # Set temporary user for workflow commits
 
-foreach ($solutionFile in $solutionFiles) {
-    # Define paths
-    $sourcePath = "$targetLicenses\$($solutionFile.BaseName)\THIRD-PARTY-NOTICES.txt"
-    $destinationPath = "$(topLevelDirectory)\$($solutionFile.BaseName)_THIRD-PARTY-NOTICES.txt"
 
-    # Copy the file (overwrite if exists)
-    if (Test-Path $sourcePath) {
-        Copy-Item -Path $sourcePath -Destination $destinationPath -Force
-        Write-Host "Copied: $sourcePath → $destinationPath"
-    } else {
-        Write-Host "Source file not found: $sourcePath" -ForegroundColor Red
-        continue  # Skip this iteration if the file doesn't exist
-    }
-
-    # Set temporary Git user
-    git config user.name $gitTempUser
-    git config user.email $gitTempMail
-
-    # Git operations
+    Copy-Item -Path $targetSolutionLicensesFileOut -Destination $(topLevelDirectory) -Force
     git add $destinationPath
     git commit -m "Updated from Workflow [no ci]"
+    git push origin $currentBranch
     
-    if ($?) {  # Check if commit was successful
-        git push origin $currentBranch
-        Write-Host "Changes pushed to branch: $currentBranch"
-    } else {
-        Write-Host "Commit failed, skipping push." -ForegroundColor Red
-    }
-
-    # Restore original Git user
-    & git config user.name $gitUserLocal
-    & git config user.email $gitMailLocal
 }
+
+git config user.name $gitUserLocal
+git config user.email $gitMailLocal
 
 exit 1
 
