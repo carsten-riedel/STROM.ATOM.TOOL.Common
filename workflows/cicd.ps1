@@ -34,9 +34,11 @@ Ensure-Variable -Variable { $NUGET_TEST_PAT } -ExitIfNullOrEmpty -HideValue
 $targetDirPack    = [System.IO.Path]::Combine($topLevelDirectory, "output", "pack")
 $targetDirPublish = [System.IO.Path]::Combine($topLevelDirectory, "output", "publish")
 $targetDirSetup   = [System.IO.Path]::Combine($topLevelDirectory, "output", "setup")
+$targetDirTest   = [System.IO.Path]::Combine($topLevelDirectory, "output", "test")
 [System.IO.Directory]::CreateDirectory($targetDirPack) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirPublish) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirSetup) | Out-Null
+[System.IO.Directory]::CreateDirectory($targetDirTest) | Out-Null
 
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
@@ -57,7 +59,7 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> After build =========================================================="
 
     Write-Output "===> Before test =========================================================="
-    dotnet test $solutionFile.FullName -p:"Stage=test" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart)
+    dotnet test $solutionFile.FullName -p:"Stage=test" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart) -p:"TargetDirTest=$targetDirTest" -p:"SanitizedBranch=$sanitizedBranch"
     Write-Output "===> After test ==========================================================="
 
     Write-Output "===> Before pack =========================================================="
