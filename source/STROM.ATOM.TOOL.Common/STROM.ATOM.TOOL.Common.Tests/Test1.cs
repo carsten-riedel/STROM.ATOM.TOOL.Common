@@ -16,7 +16,7 @@
         [TestClass]
         public sealed class OsVersionServiceTests
         {
-            private static IHost host;
+            private static IHost? host;
 
             [AssemblyInitialize]
             public static void AssemblyInit(TestContext context)
@@ -66,6 +66,7 @@
             public async Task TestOsVersionServiceIntegration()
             {
                 // Resolve the service from the host's service provider.
+                if (host is null) throw new InvalidOperationException("Host is not initialized.");
                 IOsVersionService osVersionService = host.Services.GetRequiredService<IOsVersionService>();
 
                 // Call the service method with a short delay and a cancellation token.

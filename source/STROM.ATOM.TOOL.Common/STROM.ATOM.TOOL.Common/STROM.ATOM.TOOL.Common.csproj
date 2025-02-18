@@ -99,7 +99,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Stage)' == 'pack' AND '$(PackAsTool)' == 'true' ">
-		<ToolCommandName>satcom</ToolCommandName>
+		<ToolCommandName>dotnet-satcom</ToolCommandName>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Stage)' == 'publish' OR '$(Stage)' == 'pack' OR '$(Stage)' == 'build' ">

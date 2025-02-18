@@ -1,5 +1,11 @@
 . "$PSScriptRoot\psutility\common.ps1"
 
+
+Set-Location "$PSScriptRoot\.." ; dotnet tool restore; Set-Location "$PSScriptRoot"
+dotnet tool list
+satcom dump envars
+
+
 # Check if the secrets file exists before importing
 if (Test-Path "$PSScriptRoot/cicd_secrets.ps1") {
     . "$PSScriptRoot\cicd_secrets.ps1"
@@ -35,14 +41,18 @@ $targetDirPack    = [System.IO.Path]::Combine($topLevelDirectory, "output", "pac
 $targetDirPublish = [System.IO.Path]::Combine($topLevelDirectory, "output", "publish")
 $targetDirSetup   = [System.IO.Path]::Combine($topLevelDirectory, "output", "setup")
 $targetDirTest   = [System.IO.Path]::Combine($topLevelDirectory, "output", "test")
+$targetDirOutdated   = [System.IO.Path]::Combine($topLevelDirectory, "output", "outdated")
 Ensure-Variable -Variable { $targetDirPack } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirPublish } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirSetup } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirTest } -ExitIfNullOrEmpty
+Ensure-Variable -Variable { $targetDirOutdated } -ExitIfNullOrEmpty
 [System.IO.Directory]::CreateDirectory($targetDirPack) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirPublish) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirSetup) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirTest) | Out-Null
+[System.IO.Directory]::CreateDirectory($targetDirOutdated) | Out-Null
+
 
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
@@ -73,7 +83,15 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> Before publish ======================================================="
     dotnet publish $solutionFile.FullName -p:"Stage=publish" -c Release -p:"HighPart=$($result.HighPart)" -p:"LowPart=$($result.LowPart)" -p:"TargetDirPublish=$targetDirPublish" -p:"SanitizedBranch=$sanitizedBranch" -p:"TargetDirSetup=$targetDirSetup"
     Write-Output "===> After publish ========================================================"
+
+    Write-Output "===> Before outdated ======================================================="
+    dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.md" --output-format Markdown
+    dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.json" --output-format json
+    dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.csv" --output-format csv
+    Write-Output "===> After outdated ========================================================"
 }
+
+exit 1
 
 $pattern = "*$nugetSuffix.nupkg"
 
