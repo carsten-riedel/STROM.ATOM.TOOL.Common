@@ -79,7 +79,7 @@
                 var mapped2 = Utility.Utility.MapDateTimeToUShorts();
 
                 var start = new DateTime(2025, 2, 16);
-                var end = start.AddDays(4);
+                var end = start.AddDays(1);
                 for (var i = start; i < end; i=i.AddHours(1))
                 {
                     var mapped = Utility.Utility.MapDateTimeToUShorts(i);
