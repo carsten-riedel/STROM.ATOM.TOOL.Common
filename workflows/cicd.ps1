@@ -64,6 +64,9 @@ $gitMailLocal = git config user.email
 $gitTempUser = "Workflow"
 $gitTempMail = "carstenriedel@outlook.com"  # Assuming a placeholder email
 
+git config user.name $gitTempUser
+git config user.email $gitTempMail
+
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
 #$csprojFiles = Find-FilesByPattern -Path "C:\dev\github.com\carsten-riedel\STROM.ATOM.TOOL.Common\source" -Pattern "*.csproj"
