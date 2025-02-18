@@ -73,15 +73,6 @@ Delete-FilesByPattern -Path "$targetDirPack" -Pattern "*.nupkg"
 
 foreach ($solutionFile in $solutionFiles) {
 
-    Write-Output "===> Before nuget-license =================================================="
-    $targetSolutionLicensesDir = [System.IO.Path]::Combine($topLevelDirectory, "output", "licenses", "$($solutionFile.BaseName)")
-    $targetSolutionLicensesFile = [System.IO.Path]::Combine($targetSolutionLicensesDir ,"licenses.json")
-    $targetSolutionLicensesFileOut = [System.IO.Path]::Combine($targetSolutionLicensesDir ,"THIRD-PARTY-NOTICES.txt")
-    [System.IO.Directory]::CreateDirectory($targetSolutionLicensesDir) | Out-Null
-    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$targetConfigAllowedLicenses" --output JsonPretty --file-output "$targetSolutionLicensesFile"
-    Generate-ThirdPartyNotices -LicenseJsonPath "$targetSolutionLicensesFile" -OutputPath "$targetSolutionLicensesFileOut"
-    Write-Output "===> After nuget-license ==================================================="
-
     Write-Output "===> Before clean ========================================================="
     dotnet clean $solutionFile.FullName -p:"Stage=clean" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart)
     Write-Output "===> After clean =========================================================="
@@ -97,6 +88,16 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> Before test =========================================================="
     dotnet test $solutionFile.FullName -p:"Stage=test" -c Release -p:HighPart=$($result.HighPart) -p:LowPart=$($result.LowPart) -p:"TargetDirTest=$targetDirTest" -p:"SanitizedBranch=$sanitizedBranch"
     Write-Output "===> After test ==========================================================="
+
+    Write-Output "===> Before nuget-license =================================================="
+    $targetSolutionLicensesDir = [System.IO.Path]::Combine($topLevelDirectory, "output", "licenses", "$($solutionFile.BaseName)")
+    $targetSolutionLicensesFile = [System.IO.Path]::Combine($targetSolutionLicensesDir ,"licenses.json")
+    $targetSolutionLicensesFileOut = [System.IO.Path]::Combine($targetSolutionLicensesDir ,"THIRD-PARTY-NOTICES.txt")
+    [System.IO.Directory]::CreateDirectory($targetSolutionLicensesDir) | Out-Null
+    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$targetConfigAllowedLicenses" --output JsonPretty --file-output "$targetSolutionLicensesFile"
+    Generate-ThirdPartyNotices -LicenseJsonPath "$targetSolutionLicensesFile" -OutputPath "$targetSolutionLicensesFileOut"
+    Write-Output "===> After nuget-license ==================================================="
+
 
     Write-Output "===> Before pack =========================================================="
     dotnet pack $solutionFile.FullName -p:"Stage=pack" -c Release -p:"HighPart=$($result.HighPart)" -p:"LowPart=$($result.LowPart)" -p:"TargetDirPack=$targetDirPack" -p:"SanitizedBranch=$sanitizedBranch" -p:"NugetSuffix=$nugetSuffix"
