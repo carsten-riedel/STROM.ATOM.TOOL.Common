@@ -35,6 +35,10 @@ $targetDirPack    = [System.IO.Path]::Combine($topLevelDirectory, "output", "pac
 $targetDirPublish = [System.IO.Path]::Combine($topLevelDirectory, "output", "publish")
 $targetDirSetup   = [System.IO.Path]::Combine($topLevelDirectory, "output", "setup")
 $targetDirTest   = [System.IO.Path]::Combine($topLevelDirectory, "output", "test")
+Ensure-Variable -Variable { $targetDirPack } -ExitIfNullOrEmpty
+Ensure-Variable -Variable { $targetDirPublish } -ExitIfNullOrEmpty
+Ensure-Variable -Variable { $targetDirSetup } -ExitIfNullOrEmpty
+Ensure-Variable -Variable { $targetDirTest } -ExitIfNullOrEmpty
 [System.IO.Directory]::CreateDirectory($targetDirPack) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirPublish) | Out-Null
 [System.IO.Directory]::CreateDirectory($targetDirSetup) | Out-Null
