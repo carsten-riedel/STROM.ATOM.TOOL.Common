@@ -1,47 +1,77 @@
-﻿namespace TestProject1
+﻿namespace STROM.ATOM.TOOL.Common.Tests
 {
-    [TestClass]
-    public sealed class Test1
+    using System.Threading;
+    using System.Threading.Tasks;
+
+    using global::STROM.ATOM.TOOL.Common.Services;
+
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+
+
+    namespace STROM.ATOM.TOOL.Common.Tests
     {
-        [AssemblyInitialize]
-        public static void AssemblyInit(TestContext context)
+        [TestClass]
+        public sealed class OsVersionServiceTests
         {
-            // This method is called once for the test assembly, before any tests are run.
-        }
+            private static IHost host;
 
-        [AssemblyCleanup]
-        public static void AssemblyCleanup()
-        {
-            // This method is called once for the test assembly, after all tests are run.
-        }
+            [AssemblyInitialize]
+            public static void AssemblyInit(TestContext context)
+            {
+                // This method is called once for the test assembly, before any tests are run.
+            }
 
-        [ClassInitialize]
-        public static void ClassInit(TestContext context)
-        {
-            // This method is called once for the test class, before any tests of the class are run.
-        }
+            [AssemblyCleanup]
+            public static void AssemblyCleanup()
+            {
+                // This method is called once for the test assembly, after all tests are run.
+            }
 
-        [ClassCleanup]
-        public static void ClassCleanup()
-        {
-            // This method is called once for the test class, after all tests of the class are run.
-        }
+            [ClassInitialize]
+            public static void ClassInit(TestContext context)
+            {
+                // This method is called once for the test class, before any tests of the class are run.
+                host = Host.CreateDefaultBuilder()
+                    .ConfigureServices((ctx, services) =>
+                    {
+                        services.AddLogging();
+                        services.AddTransient<IOsVersionService, OsVersionService>();
+                    })
+                    .Build();
+            }
 
-        [TestInitialize]
-        public void TestInit()
-        {
-            // This method is called before each test method.
-        }
+            [ClassCleanup]
+            public static void ClassCleanup()
+            {
+                // This method is called once for the test class, after all tests of the class are run.
+                host?.Dispose();
+            }
 
-        [TestCleanup]
-        public void TestCleanup()
-        {
-            // This method is called after each test method.
-        }
+            [TestInitialize]
+            public void TestInit()
+            {
+                // This method is called before each test method.
+            }
 
-        [TestMethod]
-        public void TestMethod1()
-        {
+            [TestCleanup]
+            public void TestCleanup()
+            {
+                // This method is called after each test method.
+            }
+
+            [TestMethod]
+            public async Task TestOsVersionServiceIntegration()
+            {
+                // Resolve the service from the host's service provider.
+                IOsVersionService osVersionService = host.Services.GetRequiredService<IOsVersionService>();
+
+                // Call the service method with a short delay and a cancellation token.
+                await osVersionService.ShowOsVersion(100, CancellationToken.None);
+            }
         }
     }
+
 }
