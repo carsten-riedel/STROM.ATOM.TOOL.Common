@@ -118,6 +118,7 @@ foreach ($solutionFile in $solutionFiles) {
 
     # Set temporary user for workflow commits
 
+
     $fileItem = Get-Item -Path $targetSolutionLicensesFileOut
     $fileName = $fileItem.Name  # Includes extension (e.g., THIRD-PARTY-NOTICES.txt)
     $destinationPath = Join-Path -Path $topLevelDirectory -ChildPath $fileName
