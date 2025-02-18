@@ -42,14 +42,14 @@ function Map-DateTimeToUShorts {
     # Compute total seconds elapsed since the start of the year
     $seconds = [int](([timespan]($now - $startOfYear)).TotalSeconds)
     
-    # Discard the lower 6 bits by integer division by 64
-    $computedLow = [int]($seconds / 64)
+    # Use the bitwise shift operator to discard the lower 6 bits
+    $computedLow = $seconds -shr $discardBits
     
-    # LowPart: lower 16 bits of computedLow (simulate ushort by modulo 65536)
-    $low = $computedLow % 65536
+    # LowPart: lower 16 bits (simulate ushort by bitwise AND with 0xFFFF)
+    $low = $computedLow -band 0xFFFF
     
-    # HighPart: remaining bits from computedLow (simulate right-shift by 16)
-    $high = [int]($computedLow / 65536)
+    # HighPart: remaining bits (simulate a right-shift by 16)
+    $high = $computedLow -shr 16
     
     # Composite high part: combine high with a year offset (year multiplied by 10)
     $highPartFull = $high + ($now.Year * 10)
@@ -60,6 +60,7 @@ function Map-DateTimeToUShorts {
         LowPart  = $low.ToString()
     }
 }
+
 
 <#
 .SYNOPSIS

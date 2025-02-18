@@ -86,7 +86,7 @@
 		<!-- Enable unsafe code -->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<VersionMajor>0</VersionMajor>
-		<VersionMinor>1</VersionMinor>
+		<VersionMinor>2</VersionMinor>
 		<AssemblyVersion>$(VersionMajor).$(VersionMinor).$(HighPart).$(LowPart)</AssemblyVersion>
 		<Version>$(VersionMajor).$(VersionMinor).$(HighPart).$(LowPart)$(NugetSuffix)</Version>
 	</PropertyGroup>

@@ -72,6 +72,20 @@
                 // Call the service method with a short delay and a cancellation token.
                 await osVersionService.ShowOsVersion(100, CancellationToken.None);
             }
+
+            [TestMethod]
+            public void Versioning()
+            {
+                var mapped2 = Utility.Utility.MapDateTimeToUShorts();
+
+                var start = new DateTime(2025, 2, 16);
+                var end = start.AddDays(4);
+                for (var i = start; i < end; i=i.AddHours(1))
+                {
+                    var mapped = Utility.Utility.MapDateTimeToUShorts(i);
+                    Console.WriteLine($"{mapped.HighPart}-{mapped.LowPart}   {i.ToString()}");
+                }
+            }
         }
     }
 
