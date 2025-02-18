@@ -118,8 +118,11 @@ foreach ($solutionFile in $solutionFiles) {
 
     # Set temporary user for workflow commits
 
-
-    Copy-Item -Path $targetSolutionLicensesFileOut -Destination "$topLevelDirectory" -Force
+    $fileItem = Get-Item -Path $targetSolutionLicensesFileOut
+    $fileName = $fileItem.Name  # Includes extension (e.g., THIRD-PARTY-NOTICES.txt)
+    $destinationPath = Join-Path -Path $topLevelDirectory -ChildPath $fileName
+    Copy-Item -Path $fileItem.FullName -Destination $destinationPath -Force
+    
     git add $destinationPath
     git commit -m "Updated from Workflow [no ci]"
     git push origin $currentBranch

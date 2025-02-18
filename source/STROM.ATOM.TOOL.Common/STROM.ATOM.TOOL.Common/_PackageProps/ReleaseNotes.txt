@@ -1,3 +1,6 @@
 ﻿0.0.* (2025-02-16)
 
 - For versions below 1.0, the software is in a preliminary phase, focusing on core development and testing. Users should be prepared for ongoing adjustments and enhancements as the project matures towards its initial stable release
+
+THIRD-PARTY-NOTICES.txt
+Third Party Notices can be found in the root of the respository.
