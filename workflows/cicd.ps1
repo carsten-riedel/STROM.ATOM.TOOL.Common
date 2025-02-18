@@ -75,8 +75,6 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> After publish ========================================================"
 }
 
-
-
 $pattern = "*$nugetSuffix.nupkg"
 
 $firstFileMatch = Get-ChildItem -Path $targetDirPack -Filter $pattern -File -Recurse | Select-Object -First 1
