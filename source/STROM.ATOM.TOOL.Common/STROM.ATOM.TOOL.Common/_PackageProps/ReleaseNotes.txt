@@ -1,4 +1,4 @@
-﻿Release Notes – 0.1.* (2025-02-16)
+﻿Release Notes – 0.2.* (2025-02-18)
 ===================================
 
 Status: Early Development Phase
@@ -12,7 +12,6 @@ potential changes as the project matures.
 What's New & Improved?
 ----------------------
 - Active core development with ongoing refinements.
-- Frequent enhancements based on early user feedback.
 - Initial groundwork for future stable releases.
 
 Third-Party Notices

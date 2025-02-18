@@ -8,16 +8,28 @@ STROM.ATOM.TOOL.Common is a multi-purpose command-line .NET tool, containing a s
 ## Installing the Tool
 To install the tool globally on your machine, run the following command in your terminal:
 
-Install/Update/Reinstall
+### Install/Update/Reinstall as global tool
 ```
 dotnet tool install -g STROM.ATOM.TOOL.Common
 ```
 
-## Use
+#### Use
 ```
 satcom -h
 satcom dump osversion
 satcom dump envars
+```
+
+### Install/Update/Reinstall as local tool
+```
+dotnet tool install STROM.ATOM.TOOL.Common
+```
+
+#### Use
+```
+dotnet satcom -h
+dotnet satcom dump osversion
+dotnet satcom dump envars
 ```
 
 ## Documentation
