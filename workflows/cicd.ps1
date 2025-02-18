@@ -113,11 +113,6 @@ foreach ($solutionFile in $solutionFiles) {
     dotnet dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.csv" --output-format csv
     Write-Output "===> After outdated ========================================================"
 
-    Write-Output "===> Before nuget-license =================================================="
-    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$(topLevelDirectory)/.config/allowed-licenses.json" --output Table --file-output "$targetLicenses\licenses.txt"
-    dotnet nuget-license --input "$($solutionFile.FullName)" -a "$(topLevelDirectory)/.config/allowed-licenses.json" --output JsonPretty --file-output "$targetLicenses\licenses.json"
-    Write-Output "===> After nuget-license ==================================================="
-
     $gitUserLocal = & git config user.name
     $gitMailLocal = & git config user.email
 
