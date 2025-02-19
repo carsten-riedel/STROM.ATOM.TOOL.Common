@@ -6,6 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<EnableMSTestRunner>true</EnableMSTestRunner>
+		<ResultsDirectory>$(MSBuildProjectDirectory)\CustomTestResults</ResultsDirectory>
 		<!--
 		<EnableMSTestRunner>true</EnableMSTestRunner>
 		<OutputType>Exe</OutputType>

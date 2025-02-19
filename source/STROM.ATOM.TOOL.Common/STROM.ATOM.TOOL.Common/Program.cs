@@ -23,8 +23,6 @@ namespace STROM.ATOM.TOOL.Common
 
         public static async Task<int> Main(string[] args)
         {
-            var ss = Utility.Utility.MapDateTimeToUShorts(); 
-
             levelSwitch.MinimumLevel = LogEventLevel.Warning;
 
             var loggconfig = new LoggerConfiguration()
