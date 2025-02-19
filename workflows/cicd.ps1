@@ -98,7 +98,6 @@ foreach ($solutionFile in $solutionFiles) {
     Generate-ThirdPartyNotices -LicenseJsonPath "$targetSolutionLicensesFile" -OutputPath "$targetSolutionLicensesFileOut"
     Write-Output "===> After nuget-license ==================================================="
 
-
     Write-Output "===> Before pack =========================================================="
     dotnet pack $solutionFile.FullName -p:"Stage=pack" -c Release -p:"HighPart=$($result.HighPart)" -p:"LowPart=$($result.LowPart)" -p:"TargetDirPack=$targetDirPack" -p:"SanitizedBranch=$sanitizedBranch" -p:"NugetSuffix=$nugetSuffix"
     Write-Output "===> After pack ==========================================================="
@@ -113,10 +112,7 @@ foreach ($solutionFile in $solutionFiles) {
     dotnet dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.csv" --output-format csv
     Write-Output "===> After outdated ========================================================"
 
-    $gitUserLocal = & git config user.name
-    $gitMailLocal = & git config user.email
-
-    # Set temporary user for workflow commits
+    dotnet list $solutionFile.FullName package --vulnerable --format json
 
     $fileItem = Get-Item -Path $targetSolutionLicensesFileOut
     $fileName = $fileItem.Name  # Includes extension (e.g., THIRD-PARTY-NOTICES.txt)

@@ -51,5 +51,8 @@ dotnet satcom dump envars
 - **NET**: Built on modern, cross-platform .NET (e.g., `net7.0`).  
 - **NETW**: Incorporates Windows-specific extensions (e.g., `net7.0-windows`).  
 - **NETW10**: Targets Windows 10 features (e.g., `net7.0-windows10.0.19041.0`).
-- **PSWH**: Powershell Core modules.
+- **PSWH**: PowerShell Script
+- **PSMOD**: PowerShell C# Module.
 - **TOOL**: dotnet tool.
+- **MSBUILD**: C# MSBUILD Project.
+- **TEMPLATE**: NET Templates.
