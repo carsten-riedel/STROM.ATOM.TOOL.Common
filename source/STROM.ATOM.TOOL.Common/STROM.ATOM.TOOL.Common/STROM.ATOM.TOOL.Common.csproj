@@ -58,7 +58,6 @@
 			<AssemblyVersion>0.0.$(HighPart).$(LowPart)</AssemblyVersion>
 		</PropertyGroup>
 	</Target>
-		<DumpGlobalPropTask />
 
 	<!-- https://learn.microsoft.com/de-de/dotnet/core/tools/global-tools-how-to-create -->
 
