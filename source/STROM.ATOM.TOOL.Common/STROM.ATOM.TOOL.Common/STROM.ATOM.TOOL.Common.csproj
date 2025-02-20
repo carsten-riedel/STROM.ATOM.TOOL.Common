@@ -58,21 +58,20 @@
 			<AssemblyVersion>0.0.$(HighPart).$(LowPart)</AssemblyVersion>
 		</PropertyGroup>
 	</Target>
+		<DumpGlobalPropTask />
 
 	<!-- https://learn.microsoft.com/de-de/dotnet/core/tools/global-tools-how-to-create -->
 
 	<!-- dotnet tool list -g -->
 
 	<PropertyGroup>
-		<!-- Bestehende Properties -->
 		<NoWarn>$(NoWarn);NETSDK1138</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<Stage Condition="'$(Stage)' == ''">build</Stage>
+		<Stage Condition="'$(Stage)' == ''">buildd</Stage>
 		<HighPart Condition="'$(HighPart)' == ''">0</HighPart>
 		<LowPart Condition="'$(LowPart)' == ''">0</LowPart>
-		<DefineConstants>$(DefineConstants);$(Stage)</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -146,12 +145,6 @@
 		<!-- Ensure native libraries are extracted at runtime -->
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 	</PropertyGroup>
-
-
-
-	<ItemGroup>
-	  <None Include="Utility\MapDateTimeToUShorts.cs" />
-	</ItemGroup>
 
 
 	<ItemGroup>
