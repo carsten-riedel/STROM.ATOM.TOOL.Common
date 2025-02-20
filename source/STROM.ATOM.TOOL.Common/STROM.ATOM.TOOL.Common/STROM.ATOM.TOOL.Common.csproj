@@ -68,7 +68,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<Stage Condition="'$(Stage)' == ''">buildd</Stage>
+		<Stage Condition="'$(Stage)' == ''">build</Stage>
 		<HighPart Condition="'$(HighPart)' == ''">0</HighPart>
 		<LowPart Condition="'$(LowPart)' == ''">0</LowPart>
 	</PropertyGroup>
