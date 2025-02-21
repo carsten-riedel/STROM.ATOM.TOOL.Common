@@ -96,7 +96,7 @@
 		<PackAsTool>true</PackAsTool>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Stage)' == 'pack' AND '$(PackAsTool)' == 'true' ">
+	<PropertyGroup Condition="'$(PackAsTool)' == 'true' ">
 		<ToolCommandName>satcom</ToolCommandName>
 	</PropertyGroup>
 
@@ -147,6 +147,22 @@
 		<!-- Ensure native libraries are extracted at runtime -->
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 	</PropertyGroup>
+
+	<Target Name="RenamePublishedExe" AfterTargets="Publish" Condition="'$(PackAsTool)' == 'true' ">
+		<PropertyGroup>
+			<NewExeName>$(ToolCommandName).exe</NewExeName>
+		</PropertyGroup>
+
+		<!-- Locate the original exe output -->
+		<ItemGroup>
+			<PublishedExe Include="$(PublishDir)$(AssemblyName).exe" Condition="Exists('$(PublishDir)$(AssemblyName).exe')" />
+		</ItemGroup>
+
+		<Message Text="Renaming $(AssemblyName).exe to $(NewExeName) in $(PublishDir)" Importance="High" />
+
+		<!-- Rename (move) the exe -->
+		<Move SourceFiles="@(PublishedExe)" DestinationFiles="$(PublishDir)$(NewExeName)" />
+	</Target>
 
 
 	<ItemGroup>

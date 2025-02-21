@@ -169,7 +169,10 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> After outdated ======================================================== $($stopwatch.Elapsed)"
     $stopwatch.Restart()
 
+    Write-Output "===> Before vulnerable ======================================================="
     dotnet list $solutionFile.FullName package --vulnerable --format json
+    Test-DotnetVulnerabilities -SolutionPath "$($solutionFile.FullName)" -ExitOn "Low"
+    Write-Output "===> After vulnerable ======================================================="
 
     $fileItem = Get-Item -Path $targetSolutionLicensesFileOut
     $fileName = $fileItem.Name  # Includes extension (e.g., THIRD-PARTY-NOTICES.txt)

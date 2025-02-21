@@ -597,3 +597,112 @@ function Generate-ThirdPartyNotices {
     Write-Host "THIRD-PARTY-NOTICES.txt generated at: $OutputPath" -ForegroundColor Green
 }
 
+
+function Test-DotnetVulnerabilities {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, HelpMessage = "Path to the .NET solution file (.sln).")]
+        [string]$SolutionPath,
+
+        [Parameter(Mandatory = $false, HelpMessage = "Minimum vulnerability severity that triggers an exit. Valid values: Low, Medium, High, Critical. Default is High.")]
+        [ValidateSet("Low", "Medium", "High", "Critical")]
+        [string]$ExitOn = "High"
+    )
+
+    <#
+    .SYNOPSIS
+      Checks a .NET solution for package vulnerabilities using the dotnet CLI.
+    
+    .DESCRIPTION
+      This function runs the 'dotnet list' command with the '--vulnerable' flag and a JSON output format.
+      It then parses the JSON, inspects each project's frameworks and top-level packages for any vulnerabilities,
+      and compares the vulnerability severity against a threshold (provided via the ExitOn parameter).
+      If any vulnerability is at or above the threshold, the function writes the details and exits with error code 1.
+    
+    .PARAMETER SolutionPath
+      The path to the .NET solution file to check.
+    
+    .PARAMETER ExitOn
+      The minimum severity level that will trigger an exit. 
+      Valid values are: Low, Medium, High, Critical. Defaults to "High".
+    
+    .EXAMPLE
+      Test-DotnetVulnerabilities -SolutionPath "C:\Projects\MySolution.sln" -ExitOn "High"
+    #>
+
+    Write-Host "Checking vulnerabilities in solution: $SolutionPath" -ForegroundColor Cyan
+
+    # Execute the dotnet command and capture the JSON output.
+    $jsonOutput = dotnet list $SolutionPath package --vulnerable --format json 2>&1
+    if (-not $jsonOutput) {
+        Write-Error "No output received from dotnet list. Verify the solution path is correct."
+        exit 1
+    }
+
+    try {
+        $result = $jsonOutput | ConvertFrom-Json
+    }
+    catch {
+        Write-Error "Failed to parse JSON output from dotnet list command."
+        exit 1
+    }
+
+    # Define severity ranking.
+    $severityRank = @{
+        "Low"      = 1;
+        "Medium"   = 2;
+        "High"     = 3;
+        "Critical" = 4;
+    }
+    $thresholdRank = $severityRank[$ExitOn]
+
+    $vulnerabilitiesFound = @()
+
+    # Loop through projects and their frameworks to gather vulnerabilities.
+    foreach ($project in $result.projects) {
+        if ($project.frameworks) {
+            foreach ($framework in $project.frameworks) {
+                if ($framework.topLevelPackages) {
+                    foreach ($package in $framework.topLevelPackages) {
+                        if ($package.vulnerabilities) {
+                            foreach ($vuln in $package.vulnerabilities) {
+                                $vulnerabilitiesFound += [PSCustomObject]@{
+                                    Project         = $project.path
+                                    Framework       = $framework.framework
+                                    Package         = $package.id
+                                    RequestedVersion= $package.requestedVersion
+                                    ResolvedVersion = $package.resolvedVersion
+                                    Severity        = $vuln.severity
+                                    AdvisoryUrl     = $vuln.advisoryurl
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if ($vulnerabilitiesFound.Count -gt 0) {
+        $triggerExit = $false
+        foreach ($vuln in $vulnerabilitiesFound) {
+            if ($severityRank[$vuln.Severity] -ge $thresholdRank) {
+                $triggerExit = $true
+                break
+            }
+        }
+
+        if ($triggerExit) {
+            Write-Host "Vulnerabilities meeting or exceeding the severity threshold '$ExitOn' were found:" -ForegroundColor Red
+            $vulnerabilitiesFound | Format-Table -AutoSize
+            exit 1
+        }
+        else {
+            Write-Host "Vulnerabilities were found, but none meet the threshold '$ExitOn'." -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Host "No vulnerabilities found." -ForegroundColor Green
+    }
+}
+
