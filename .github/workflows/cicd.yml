@@ -12,14 +12,18 @@ on:
     branches:
       - 'master'
       - 'main'
+      - 'hotfix'
       - 'release'
       - 'develop'
-      - 'hotfix'
+      - 'bugfix'
+      - 'feature'
       - 'master/**'
       - 'main/**'
+      - 'hotfix/**'
       - 'release/**'
       - 'develop/**'
-      - 'hotfix/**'
+      - 'bugfix/**'
+      - 'feature/**'
   repository_dispatch:
     types: 
       - builddispatch
