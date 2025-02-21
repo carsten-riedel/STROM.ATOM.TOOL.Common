@@ -1,3 +1,4 @@
+. "$PSScriptRoot\psutility\mapper.ps1"
 . "$PSScriptRoot\psutility\common.ps1"
 
 
@@ -19,6 +20,36 @@ if (Test-Path "$PSScriptRoot/cicd_secrets.ps1") {
 
 $result = Map-DateTimeToUShorts
 $currentBranch = Get-GitCurrentBranch
+
+$currentBranch = "feature/aaa"
+
+$segmentsBranchSegments = Split-Segments -InputString "$currentBranch" -ForbiddenSegments @("latest") -MaxSegments 2
+$deployChannelSegments = Translate-FirstSegment -Segments $segmentsBranchSegments -TranslationTable @{ "feature" = "development"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}"
+#$deployChannelSegments = Translate-FirstSegment -Segments $segmentsBranchSegments -TranslationTable @{ "feature" = "{nodeploy}"; "develop" = "quality"; "bugfix" = "quality"; "release" = "{nodeploy}"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}"
+
+$branchSegments = Join-Segments -Segments $segmentsBranchSegments 
+$buildBranchVersionFolder = Join-Segments -Segments $segmentsBranchSegments -AppendSegments @( "{version}" )
+$deployChannelVersionFolder = Join-Segments -Segments $deployChannelSegments -AppendSegments @( "{version}" )
+$deployChannelLatestRootFolder = Join-Segments -Segments $deployChannelSegments -AppendSegments @( "latest" )
+
+if ($deployChannelSegments.Count -eq 2)
+{
+    $deployChannelLatestRootFolder = Join-Segments -Segments $deployChannelSegments[0] -AppendSegments @( "latest" )
+}
+
+Write-Output "BranchSegment to $branchSegments"
+Write-Output "Building to $buildBranchVersionFolder"
+if (-not $deployChannelVersionFolder.StartsWith("{nodeploy}"))
+{
+    Write-Output "Deploying to $deployChannelVersionFolder"
+    Write-Output "Deploying to $deployChannelLatestRootFolder"
+}
+
+
+
+
+
+
 $sanitizedBranch = Sanitize-BranchName -BranchName $currentBranch
 $currentBranchRoot = Get-BranchRoot -BranchName "$currentBranch"
 $topLevelDirectory = Get-GitTopLevelDirectory

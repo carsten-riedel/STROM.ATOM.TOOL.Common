@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace STROM.ATOM.TOOL.Common.Extensions.StringExtensions
 {
@@ -30,5 +32,40 @@ namespace STROM.ATOM.TOOL.Common.Extensions.StringExtensions
             input = input.Limit(maxLength);
             return input;
         }
+
+        public static bool HasOneOrNoneSlash(this string input)
+        {
+            // Return true for null or empty strings as they don't contain any slash
+            if (string.IsNullOrEmpty(input))
+            {
+                return true;
+            }
+
+            int slashCount = 0;
+            foreach (char c in input)
+            {
+                if (c == '/')
+                {
+                    slashCount++;
+                    if (slashCount > 1)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public static List<string> GetSegments(this string input)
+        {
+            if (input == null)
+            {
+                return null;
+            }
+
+            // Split the input string by '/' and convert the resulting array to a list.
+            return input.Split(new char[] { '/' }, StringSplitOptions.None).ToList();
+        }
+
     }
 }

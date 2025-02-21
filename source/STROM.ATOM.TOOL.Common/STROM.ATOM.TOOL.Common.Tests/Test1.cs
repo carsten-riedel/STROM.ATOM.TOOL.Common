@@ -3,6 +3,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
+    using global::STROM.ATOM.TOOL.Common.Extensions.StringExtensions;
     using global::STROM.ATOM.TOOL.Common.Services;
 
     using Microsoft.Extensions.DependencyInjection;
@@ -85,6 +86,14 @@
                     var mapped = Utility.Utility.MapDateTimeToUShorts(i);
                     Console.WriteLine($"{mapped.HighPart}-{mapped.LowPart}   {i.ToString()}");
                 }
+            }
+
+            [TestMethod]
+            public void Mapping()
+            {
+                var ss = new SegmentMapper("feature/1234");
+                
+
             }
         }
     }
