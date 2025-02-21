@@ -6,7 +6,15 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<EnableMSTestRunner>true</EnableMSTestRunner>
-		<ResultsDirectory>$(MSBuildProjectDirectory)\CustomTestResults</ResultsDirectory>
+
+		<VersionBuild>0</VersionBuild>
+		<VersionMajor>2</VersionMajor>
+		<VersionMinor>0</VersionMinor>
+		<VersionRevision>0</VersionRevision>
+		<AssemblyVersion>$(VersionBuild).$(VersionMajor).$(VersionMinor).$(VersionRevision)</AssemblyVersion>
+		<Version>$(VersionBuild).$(VersionMajor).$(VersionMinor).$(VersionRevision)$(VersionSuffix)</Version>
+
+
 		<!--
 		<EnableMSTestRunner>true</EnableMSTestRunner>
 		<OutputType>Exe</OutputType>
@@ -14,18 +22,21 @@
 		 <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 		 <Exclude>[*]STROM.ATOM.TOOL.Common.Commands.*</Exclude>
 		 -->
+
+		<OutputTestDir Condition="'$(OutputRootTestResultsDirectory)' != ''">$(OutputRootTestResultsDirectory)\$(AssemblyName)\$(BranchVersionFolder)</OutputTestDir>
+		<OutputTestDir Condition="'$(OutputRootTestResultsDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\TestResults\$(AssemblyName)\</OutputTestDir>
+
+		<ResultsDirectory>$(OutputTestDir)</ResultsDirectory>
 		<CollectCoverage>true</CollectCoverage>
 		<CoverletOutputFormat>opencover,json</CoverletOutputFormat>
-		<TestOutputBaseDir Condition="'$(TargetDirTest)' != ''">$(TargetDirTest)</TestOutputBaseDir>
-		<TestOutputBaseDir Condition="'$(TargetDirTest)' == ''">$(MSBuildThisFileDirectory)\MSTestResults</TestOutputBaseDir>
-		<CoverletOutput>$(TestOutputBaseDir)/CoverletCoverage/CoverletCoverage</CoverletOutput>
+		<CoverletOutput>$(OutputTestDir)/CoverletCoverage</CoverletOutput>
 		<Include>[*]STROM.ATOM.TOOL.Common.Services.*</Include>
-		<VSTestLogger>trx%3bLogFileName=$(TestOutputBaseDir)\Logger\$(MSBuildProjectName).trx;html%3bLogFileName=$(TestOutputBaseDir)\Logger\$(AssemblyName).html</VSTestLogger>
+		<VSTestLogger>trx%3bLogFileName=$(OutputTestDir)\$(MSBuildProjectName).trx;html%3bLogFileName=$(OutputTestDir)\$(MSBuildProjectName).html</VSTestLogger>
 		<!--
       Displays error on console in addition to the log file. Note that this feature comes with a performance impact.
       For more information, visit https://learn.microsoft.com/dotnet/core/testing/unit-testing-platform-integration-dotnet-test#show-failure-per-test
       -->
-		
+
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -33,6 +44,12 @@
 		<IsPublishable>false</IsPublishable>
 		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="MSTestResults\**" />
+		<EmbeddedResource Remove="MSTestResults\**" />
+		<None Remove="MSTestResults\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
@@ -46,8 +63,18 @@
 		<PackageReference Include="System.Text.Json" Version="9.0.2" />
 	</ItemGroup>
 
+	<!--<Target Name="ShowSpecificReference" AfterTargets="VSTest">
+		<ItemGroup>
+			--><!-- Filter references whose filename starts with 'MyLibrary' --><!--
+			<MyLibraryReferences Include="@(ReferencePath)" Condition="$([System.String]::Copy(%(Filename)).StartsWith('STROM'))" />
+		</ItemGroup>
+		--><!-- Output the filtered references --><!--
+		<Message Importance="High" Text="========> Specific Referenced Library: @(MyLibraryReferences->'%(Filename)', ', ')" />
+	</Target>-->
+
+
 	<Target Name="GenerateHtmlCoverageReport" AfterTargets="GenerateCoverageResultAfterTest">
-		<ReportGenerator ReportFiles="@(CoverletReport)" TargetDirectory="$(TestOutputBaseDir)\ReportGenerator" ReportTypes="Html;MarkdownSummaryGithub;MarkdownSummary;CsvSummary;Clover;Badges" />
+		<ReportGenerator ReportFiles="@(CoverletReport)" TargetDirectory="$(OutputTestDir)" ReportTypes="Html;MarkdownSummaryGithub;MarkdownSummary;CsvSummary;Clover;Badges" />
 	</Target>
 
 	<ItemGroup>
@@ -56,10 +83,6 @@
 
 	<ItemGroup>
 		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="MSTestResults\" />
 	</ItemGroup>
 
 </Project>

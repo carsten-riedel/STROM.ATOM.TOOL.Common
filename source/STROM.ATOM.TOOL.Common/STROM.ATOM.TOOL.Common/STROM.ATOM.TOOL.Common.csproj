@@ -69,8 +69,6 @@
 
 	<PropertyGroup>
 		<Stage Condition="'$(Stage)' == ''">build</Stage>
-		<HighPart Condition="'$(HighPart)' == ''">0</HighPart>
-		<LowPart Condition="'$(LowPart)' == ''">0</LowPart>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -83,10 +81,12 @@
 		<DebugType>embedded</DebugType>
 		<!-- Enable unsafe code -->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<VersionMajor>0</VersionMajor>
-		<VersionMinor>2</VersionMinor>
-		<AssemblyVersion>$(VersionMajor).$(VersionMinor).$(HighPart).$(LowPart)</AssemblyVersion>
-		<Version>$(VersionMajor).$(VersionMinor).$(HighPart).$(LowPart)$(NugetSuffix)</Version>
+		<VersionBuild>0</VersionBuild>
+		<VersionMajor>2</VersionMajor>
+		<VersionMinor>0</VersionMinor>
+		<VersionRevision>0</VersionRevision>
+		<AssemblyVersion>$(VersionBuild).$(VersionMajor).$(VersionMinor).$(VersionRevision)</AssemblyVersion>
+		<Version>$(VersionBuild).$(VersionMajor).$(VersionMinor).$(VersionRevision)$(VersionSuffix)</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -106,8 +106,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Stage)' == 'pack'">
-		<PackageOutputPath Condition="'$(TargetDirPack)' != ''">$(TargetDirPack)\$(AssemblyName)\$(SanitizedBranch)\$(AssemblyVersion)</PackageOutputPath>
-		<PackageOutputPath Condition="'$(TargetDirPack)' == ''">$(MSBuildThisFileDirectory)\bin\Pack\$(Configuration)\$(AssemblyName)\$(AssemblyVersion)</PackageOutputPath>
+
+		<OutputPackDir Condition="'$(OutputRootPackDirectory)' != ''">$(OutputRootPackDirectory)\$(AssemblyName)\$(BranchVersionFolder)</OutputPackDir>
+		<OutputPackDir Condition="'$(OutputRootPackDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\pack\$(AssemblyName)</OutputPackDir>
+		<PackageOutputPath>$(OutputPackDir)</PackageOutputPath>
+		
 		<Authors>Carsten Riedel</Authors>
 		<Owners>Carsten Riedel</Owners>
 		<PackageId>$(AssemblyName)</PackageId>
@@ -124,18 +127,18 @@
 		<PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildThisFileDirectory)_PackageProps\ReleaseNotes.txt"))</PackageReleaseNotes>
 	</PropertyGroup>
 
+	<!-- In pack add additional files to the package root directory of the nuget. -->
 	<ItemGroup Condition="'$(Stage)' == 'pack'">
 		<None Include="$(MSBuildProjectDirectory)\_PackageProps\**\*" Exclude="$(MSBuildProjectDirectory)\_PackageProps\ReleaseNotes.txt" Pack="true" PackagePath="" />
 	</ItemGroup>
 
-
-
 	<PropertyGroup Condition="'$(Stage)' == 'publish'">
 		<!-- Specify the target runtime; adjust as needed (e.g., win-x86, linux-x64) -->
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<PublishDir Condition="'$(TargetDirPublish)' != ''">$(TargetDirPublish)\$(AssemblyName)\$(SanitizedBranch)\$(AssemblyVersion)</PublishDir>
-		<PublishDir Condition="'$(TargetDirPublish)' == ''">$(MSBuildThisFileDirectory)\bin\Publish\$(Configuration)\$(AssemblyName)\$(AssemblyVersion)</PublishDir>
-
+		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' != ''">$(OutputRootPublishDirectory)\$(AssemblyName)\$(BranchVersionFolder)</OutputPubDir>
+		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' == ''">$(MSBuildThisFileDirectory)\bin\Output\publish\$(AssemblyName)</OutputPubDir>
+		<PublishDir>$(OutputPubDir)</PublishDir>
+		
 		<SelfContained Condition="">true</SelfContained>
 		<!-- Enable single-file publish -->
 		<PublishSingleFile>true</PublishSingleFile>

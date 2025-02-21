@@ -23,6 +23,12 @@
 function Map-DateTimeToUShorts {
     [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $true)]
+        [int]$VersionBuild,
+
+        [Parameter(Mandatory = $true)]
+        [int]$VersionMajor,
+
         [Parameter(Mandatory = $false)]
         [datetime]$InputDate = (Get-Date)
     )
@@ -56,8 +62,11 @@ function Map-DateTimeToUShorts {
     
     # Return a hashtable with both parts as strings
     return @{
-        HighPart = $highPartFull.ToString();
-        LowPart  = $low.ToString()
+        VersionFull = "$($VersionBuild.ToString()).$($VersionMajor.ToString()).$($highPartFull.ToString()).$($low.ToString())"
+        VersionBuild = $VersionBuild.ToString();
+        VersionMajor = $VersionMajor.ToString();
+        VersionMinor = $highPartFull.ToString();
+        VersionRevision  = $low.ToString()
     }
 }
 

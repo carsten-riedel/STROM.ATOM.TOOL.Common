@@ -10,8 +10,6 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-
-
     namespace STROM.ATOM.TOOL.Common.Tests
     {
         [TestClass]
@@ -81,21 +79,12 @@
 
                 var start = new DateTime(2025, 2, 16);
                 var end = start.AddDays(1);
-                for (var i = start; i < end; i=i.AddHours(1))
+                for (var i = start; i < end; i = i.AddHours(1))
                 {
                     var mapped = Utility.Utility.MapDateTimeToUShorts(i);
                     Console.WriteLine($"{mapped.HighPart}-{mapped.LowPart}   {i.ToString()}");
                 }
             }
-
-            [TestMethod]
-            public void Mapping()
-            {
-                var ss = new SegmentMapper("feature/1234");
-                
-
-            }
         }
     }
-
 }
