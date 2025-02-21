@@ -188,7 +188,7 @@ git config user.email $gitMailLocal
 
 $pattern = "*$nugetSuffix.nupkg"
 
-$firstFileMatch = Get-ChildItem -Path $outputPackDirectory-Filter $pattern -File -Recurse | Select-Object -First 1
+$firstFileMatch = Get-ChildItem -Path $outputRootPackDirectory -Filter $pattern -File -Recurse | Select-Object -First 1
 
 if ($currentBranchRoot.ToLower() -in @("master", "main")) {
     # For branches "master" or "main", push the package to the official NuGet feed.
