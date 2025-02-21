@@ -52,17 +52,12 @@ Write-Output "BranchVersionFolder to $branchVersionFolder"
 Write-Output "ChannelVersionFolder to $channelVersionFolder"
 Write-Output "ChannelVersionFolderRoot to $channelVersionFolderRoot"
 
-
-
-
-$sanitizedBranch = Sanitize-BranchName -BranchName $currentBranch
 $currentBranchRoot = Get-BranchRoot -BranchName "$currentBranch"
 $topLevelDirectory = Get-GitTopLevelDirectory
 
 #Guard for variables
 Ensure-Variable -Variable { $result } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $currentBranch } -ExitIfNullOrEmpty
-Ensure-Variable -Variable { $sanitizedBranch } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $currentBranchRoot } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $topLevelDirectory } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $nugetSuffix }
