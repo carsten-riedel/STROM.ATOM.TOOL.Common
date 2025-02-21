@@ -212,5 +212,3 @@ else {
     dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
 }
 
-
-
