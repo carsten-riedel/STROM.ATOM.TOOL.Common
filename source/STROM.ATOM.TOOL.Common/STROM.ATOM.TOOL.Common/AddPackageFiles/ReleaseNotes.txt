@@ -4,7 +4,7 @@
 Status: Early Development Phase
 --------------------------------
 This release continues the foundational development of the software. 
-As we progress towards version 1.0, our focus remains on refining core 
+As progress towards version 1.0, the focus remains on refining core 
 functionalities, improving stability, and integrating key features. 
 Users should expect frequent updates, iterative refinements, and 
 potential changes as the project matures.

@@ -1,26 +1,35 @@
 <#
 .SYNOPSIS
-    Maps a DateTime to two string-encoded parts based on elapsed seconds since the start of the year.
+    Converts a DateTime instance into NuGet and assembly version components with a granularity of 64 seconds.
 
 .DESCRIPTION
-    This function computes the total seconds elapsed since January 1st of the provided DateTime's year, discards the lower 6 bits (i.e. each increment in the low part represents 64 seconds), and splits the result into:
-      - LowPart: The lower 16 bits (computed as the remainder modulo 65536).
-      - HighPart: The upper bits combined with a year-based offset (year multiplied by 10).
-    The function supports years only up to 6553.
+    This function calculates the total seconds elapsed from January 1st of the input DateTime's year and discards the lower 6 bits (each unit representing 64 seconds). The resulting value is split into:
+      - LowPart: The lower 16 bits, simulating a ushort value.
+      - HighPart: The remaining upper bits combined with a year-based offset (year multiplied by 10).
+    The output is provided as a version string along with individual version components. This conversion is designed to generate version segments suitable for both NuGet package versions and assembly version numbers. The function accepts additional version parameters and supports years up to 6553.
+
+.PARAMETER VersionBuild
+    An integer representing the build version component.
+
+.PARAMETER VersionMajor
+    An integer representing the major version component.
 
 .PARAMETER InputDate
-    An optional DateTime value. If not provided, the current date/time (Get-Date) is used.
+    An optional DateTime value. If not provided, the current date/time is used.
     The year of the InputDate must not exceed 6553.
 
 .EXAMPLE
-    PS C:\> $result = Map-DateTimeToUShorts -InputDate (Get-Date "2025-05-01")
+    PS C:\> $result = DateTimeVersionConverter64Seconds -VersionBuild 1 -VersionMajor 0 -InputDate (Get-Date "2025-05-01")
     PS C:\> $result
-    Name                           Value
-    ----                           -----
-    HighPart                       20250
-    LowPart                        1234
+    Name              Value
+    ----              -----
+    VersionFull       1.0.20250.1234
+    VersionBuild      1
+    VersionMajor      0
+    VersionMinor      20250
+    VersionRevision   1234
 #>
-function Map-DateTimeToUShorts {
+function DateTimeVersionConverter64Seconds {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -33,42 +42,43 @@ function Map-DateTimeToUShorts {
         [datetime]$InputDate = (Get-Date)
     )
 
-    # Number of bits to discard (i.e. one low part unit equals 64 seconds)
-    $discardBits = 6
+    # The number of bits to discard, where each unit equals 64 seconds.
+    $shiftAmount = 6
 
-    $now = $InputDate
+    $dateTime = $InputDate
 
-    if ($now.Year -gt 6553) {
+    if ($dateTime.Year -gt 6553) {
         throw "Year must not be greater than 6553."
     }
 
-    # Calculate the start of the current year
-    $startOfYear = [datetime]::new($now.Year, 1, 1, 0, 0, 0, $now.Kind)
+    # Determine the start of the current year
+    $startOfYear = [datetime]::new($dateTime.Year, 1, 1, 0, 0, 0, $dateTime.Kind)
     
-    # Compute total seconds elapsed since the start of the year
-    $seconds = [int](([timespan]($now - $startOfYear)).TotalSeconds)
+    # Calculate total seconds elapsed since the start of the year
+    $elapsedSeconds = [int](([timespan]($dateTime - $startOfYear)).TotalSeconds)
     
-    # Use the bitwise shift operator to discard the lower 6 bits
-    $computedLow = $seconds -shr $discardBits
+    # Discard the lower bits by applying a bitwise shift
+    $shiftedSeconds = $elapsedSeconds -shr $shiftAmount
     
-    # LowPart: lower 16 bits (simulate ushort by bitwise AND with 0xFFFF)
-    $low = $computedLow -band 0xFFFF
+    # LowPart: extract the lower 16 bits (simulate ushort using bitwise AND with 0xFFFF)
+    $lowPart = $shiftedSeconds -band 0xFFFF
     
-    # HighPart: remaining bits (simulate a right-shift by 16)
-    $high = $computedLow -shr 16
+    # HighPart: remaining bits after a right-shift of 16 bits
+    $highPart = $shiftedSeconds -shr 16
     
-    # Composite high part: combine high with a year offset (year multiplied by 10)
-    $highPartFull = $high + ($now.Year * 10)
+    # Combine the high part with a year offset (year multiplied by 10)
+    $combinedHigh = $highPart + ($dateTime.Year * 10)
     
-    # Return a hashtable with both parts as strings
+    # Return a hashtable with the version string and components (output names must remain unchanged)
     return @{
-        VersionFull = "$($VersionBuild.ToString()).$($VersionMajor.ToString()).$($highPartFull.ToString()).$($low.ToString())"
-        VersionBuild = $VersionBuild.ToString();
-        VersionMajor = $VersionMajor.ToString();
-        VersionMinor = $highPartFull.ToString();
-        VersionRevision  = $low.ToString()
+        VersionFull    = "$($VersionBuild.ToString()).$($VersionMajor.ToString()).$($combinedHigh.ToString()).$($lowPart.ToString())"
+        VersionBuild   = $VersionBuild.ToString();
+        VersionMajor   = $VersionMajor.ToString();
+        VersionMinor   = $combinedHigh.ToString();
+        VersionRevision = $lowPart.ToString()
     }
 }
+
 
 
 <#
