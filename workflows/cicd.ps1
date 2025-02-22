@@ -82,29 +82,14 @@ $reportsOutputFolderName = "reports"
 
 $outputRootArtifactsDirectory = [System.IO.Path]::Combine($topLevelDirectory, $artifactsOutputFolderName)
 $outputRootReportResultsDirectory   = [System.IO.Path]::Combine($topLevelDirectory, $reportsOutputFolderName)
-
-
-$outputRootPackDirectory = [System.IO.Path]::Combine($topLevelDirectory, $artifactsOutputFolderName, "pack")
-$outputRootPublishDirectory = [System.IO.Path]::Combine($topLevelDirectory, $artifactsOutputFolderName, "publish")
-$targetDirSetup   = [System.IO.Path]::Combine($topLevelDirectory, $artifactsOutputFolderName, "setup")
 $targetConfigAllowedLicenses = [System.IO.Path]::Combine($topLevelDirectory, ".config", "allowed-licenses.json")
 
 Ensure-Variable -Variable { $outputRootArtifactsDirectory } -ExitIfNullOrEmpty
-Ensure-Variable -Variable { $outputRootPackDirectory } -ExitIfNullOrEmpty
-Ensure-Variable -Variable { $outputRootPublishDirectory } -ExitIfNullOrEmpty
-Ensure-Variable -Variable { $targetDirSetup } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $outputRootReportResultsDirectory } -ExitIfNullOrEmpty
-
 Ensure-Variable -Variable { $targetConfigAllowedLicenses } -ExitIfNullOrEmpty
 
 [System.IO.Directory]::CreateDirectory($outputRootArtifactsDirectory) | Out-Null
 [System.IO.Directory]::CreateDirectory($outputRootReportResultsDirectory) | Out-Null
-[System.IO.Directory]::CreateDirectory($outputRootPackDirectory) | Out-Null
-
-[System.IO.Directory]::CreateDirectory($outputRootPublishDirectory) | Out-Null
-[System.IO.Directory]::CreateDirectory($targetDirSetup) | Out-Null
-
-
 
 # Get current Git user settings once before the loop
 $gitUserLocal = git config user.name
@@ -194,8 +179,8 @@ foreach ($projectFile in $projectFiles) {
         "-p:""ChannelVersionFolder=$channelVersionFolder""",
         "-p:""ChannelVersionFolderRoot=$channelVersionFolderRoot""",
         "-p:""OutputReportDirectory=$outputReportDirectory""",
-        "-p:""OutputRootPackDirectory=$outputArtifactsDirectory""",
-        "-p:""OutputRootPublishDirectory=$outputArtifactsDirectory"""
+        "-p:""OutputRootPackDirectory=$outputArtifactsDirectory/pack""",
+        "-p:""OutputRootPublishDirectory=$outputArtifactsDirectory/publish"""
     )
 
     Write-Host "===> Before DOTNET CLEAN at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
