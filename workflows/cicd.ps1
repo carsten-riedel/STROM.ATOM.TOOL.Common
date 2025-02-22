@@ -9,7 +9,7 @@ Set-Location "$PSScriptRoot\.."
 $LASTEXITCODE = 0
 $dotnet = "dotnet"
 $dotnetCommand = @("tool","restore","--verbosity","diagnostic")
-$arguments = @("--tool-manifest", "$PSScriptRoot\dotnet-tools.json")
+$arguments = @("--tool-manifest", [System.IO.Path]::Combine("$PSScriptRoot","dotnet-tools.json")
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 & $dotnet @dotnetCommand @arguments
 if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
