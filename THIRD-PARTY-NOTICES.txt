@@ -5,51 +5,11 @@
 This project includes third-party libraries under open-source licenses.
 
 --------------------------------------------
-📦 Package: coverlet.msbuild (v6.0.4)
-🔖 License: MIT
-🌍 License URL: https://licenses.nuget.org/MIT
-👤 Authors: tonerdo
-🔗 Project: https://github.com/coverlet-coverage/coverlet
---------------------------------------------
-
---------------------------------------------
-📦 Package: Microsoft.Extensions.Hosting (v8.0.0)
+📦 Package: Microsoft.Extensions.Hosting (v9.0.2)
 🔖 License: MIT
 🌍 License URL: https://licenses.nuget.org/MIT
 👤 Authors: Microsoft
 🔗 Project: https://dot.net/
---------------------------------------------
-
---------------------------------------------
-📦 Package: Microsoft.NET.Test.Sdk (v17.13.0)
-🔖 License: MIT
-🌍 License URL: https://licenses.nuget.org/MIT
-👤 Authors: Microsoft
-🔗 Project: https://github.com/microsoft/vstest
---------------------------------------------
-
---------------------------------------------
-📦 Package: MSTest.TestAdapter (v3.8.0)
-🔖 License: MIT
-🌍 License URL: https://licenses.nuget.org/MIT
-👤 Authors: Microsoft
-🔗 Project: https://github.com/microsoft/testfx
---------------------------------------------
-
---------------------------------------------
-📦 Package: MSTest.TestFramework (v3.8.0)
-🔖 License: MIT
-🌍 License URL: https://licenses.nuget.org/MIT
-👤 Authors: Microsoft
-🔗 Project: https://github.com/microsoft/testfx
---------------------------------------------
-
---------------------------------------------
-📦 Package: ReportGenerator (v5.4.4)
-🔖 License: Apache-2.0
-🌍 License URL: https://licenses.nuget.org/Apache-2.0
-👤 Authors: Daniel Palme
-🔗 Project: https://github.com/danielpalme/ReportGenerator
 --------------------------------------------
 
 --------------------------------------------
@@ -61,7 +21,7 @@ This project includes third-party libraries under open-source licenses.
 --------------------------------------------
 
 --------------------------------------------
-📦 Package: Serilog.Extensions.Hosting (v8.0.0)
+📦 Package: Serilog.Extensions.Hosting (v9.0.0)
 🔖 License: Apache-2.0
 🌍 License URL: https://licenses.nuget.org/Apache-2.0
 👤 Authors: Microsoft,Serilog Contributors
