@@ -331,7 +331,7 @@ foreach ($projectFile in $projectFiles) {
     #git commit -m "Updated from Workflow [no ci]"
     #git push origin $currentBranch
 }
-
+exit 0
 $stopwatch.Stop()
 
 git config user.name $gitUserLocal
