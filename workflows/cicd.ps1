@@ -221,7 +221,7 @@ foreach ($projectFile in $projectFiles) {
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
     Write-Host "===> After DOTNET BUILD elapsed after: $elapsed =========================================================" -ForegroundColor Green
 
-    Write-Host "===> Before DOTNET LIST VULNERABLE at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    Write-Host "===> Before DOTNET LIST VULNERABLE at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =============================================" -ForegroundColor Cyan
     $LASTEXITCODE = 0
     $dotnet = "dotnet"
     $dotnetCommand = "list"
@@ -232,9 +232,9 @@ foreach ($projectFile in $projectFiles) {
     if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
     New-DotnetVulnerabilitiesReport -jsonInput $jsonOutputVulnerable -OutputFile "$outputReportDirectory\ReportVulnerabilities.md" -OutputFormat markdown -ExitOnVulnerability $true
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
-    Write-Host "===> After DOTNET LIST VULNERABLE elapsed after: $elapsed =========================================================" -ForegroundColor Green
+    Write-Host "===> After DOTNET LIST VULNERABLE elapsed after: $elapsed ===============================================" -ForegroundColor Green
 
-    Write-Host "===> Before DOTNET LIST PACKAGE DEPRECATED at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    Write-Host "===> Before DOTNET LIST PACKAGE DEPRECATED at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =====================================" -ForegroundColor Cyan
     $LASTEXITCODE = 0
     $dotnet = "dotnet"
     $dotnetCommand = "list"
@@ -245,9 +245,9 @@ foreach ($projectFile in $projectFiles) {
     if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
     New-DotnetDeprecatedReport -jsonInput $jsonOutputDeprecated -OutputFile "$outputReportDirectory\ReportDeprecated.md" -OutputFormat markdown -IgnoreTransitivePackages $true -ExitOnDeprecated $true
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
-    Write-Host "===> After DOTNET LIST PACKAGE DEPRECATED elapsed after: $elapsed =========================================================" -ForegroundColor Green
+    Write-Host "===> After DOTNET LIST PACKAGE DEPRECATED elapsed after: $elapsed =======================================" -ForegroundColor Green
 
-    Write-Host "===> Before DOTNET LIST PACKAGE OUTDATED at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    Write-Host "===> Before DOTNET LIST PACKAGE OUTDATED at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================" -ForegroundColor Cyan
     $LASTEXITCODE = 0
     $dotnet = "dotnet"
     $dotnetCommand = "list"
@@ -258,9 +258,9 @@ foreach ($projectFile in $projectFiles) {
     if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
     New-DotnetOutdatedReport -jsonInput $jsonOutputOutdated -OutputFile "$outputReportDirectory\ReportOutdated.md" -OutputFormat markdown -IgnoreTransitivePackages $true
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
-    Write-Host "===> After DOTNET LIST PACKAGE OUTDATED elapsed after: $elapsed =========================================================" -ForegroundColor Green
+    Write-Host "===> After DOTNET LIST PACKAGE OUTDATED elapsed after: $elapsed =========================================" -ForegroundColor Green
 
-    Write-Host "===> Before DOTNET LIST PACKAGE BOM at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    Write-Host "===> Before DOTNET LIST PACKAGE BOM at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) ============================================" -ForegroundColor Cyan
     $LASTEXITCODE = 0
     $dotnet = "dotnet"
     $dotnetCommand = "list"
@@ -271,7 +271,7 @@ foreach ($projectFile in $projectFiles) {
     if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
     New-DotnetBillOfMaterialsReport -jsonInput $jsonOutputBom -OutputFile "$outputReportDirectory\ReportBillOfMaterials.md" -OutputFormat markdown -IgnoreTransitivePackages $true
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()    
-    Write-Host "===> After DOTNET LIST PACKAGE BOM elapsed after: $elapsed =========================================================" -ForegroundColor Green
+    Write-Host "===> After DOTNET LIST PACKAGE BOM elapsed after: $elapsed ==============================================" -ForegroundColor Green
 
     Write-Host "===> Before DOTNET nuget-license at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) ===============================================" -ForegroundColor Cyan
     $targetSolutionLicensesJsonFile = [System.IO.Path]::Combine($outputReportDirectory ,"ReportLicenses.json")
