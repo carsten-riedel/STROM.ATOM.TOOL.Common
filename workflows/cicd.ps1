@@ -78,7 +78,9 @@ Ensure-Variable -Variable { $NUGET_TEST_PAT } -ExitIfNullOrEmpty -HideValue
 
 #Required directorys
 $buildOutputFolderName = "output"
-$outputRootLicensesResultsDirectory   = [System.IO.Path]::Combine($topLevelDirectory, $buildOutputFolderName, "licenses")
+$buildReportsFolderName = "reports"
+$outputRootLicensesResultsDirectory   = [System.IO.Path]::Combine($topLevelDirectory, $buildReportsFolderName, "licenses")
+$outputRootReportResultsDirectory   = [System.IO.Path]::Combine($topLevelDirectory, $buildReportsFolderName)
 $outputRootTestResultsDirectory = [System.IO.Path]::Combine($topLevelDirectory, $buildOutputFolderName, "test")
 $outputRootPackDirectory = [System.IO.Path]::Combine($topLevelDirectory, $buildOutputFolderName, "pack")
 $outputRootPublishDirectory = [System.IO.Path]::Combine($topLevelDirectory, $buildOutputFolderName, "publish")
@@ -93,8 +95,12 @@ Ensure-Variable -Variable { $outputRootPublishDirectory } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirSetup } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $targetDirOutdated } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $outputRootLicensesResultsDirectory } -ExitIfNullOrEmpty
+
+Ensure-Variable -Variable { $outputRootReportResultsDirectory } -ExitIfNullOrEmpty
+
 Ensure-Variable -Variable { $targetConfigAllowedLicenses } -ExitIfNullOrEmpty
 [System.IO.Directory]::CreateDirectory($outputRootTestResultsDirectory) | Out-Null
+[System.IO.Directory]::CreateDirectory($outputRootReportResultsDirectory) | Out-Null
 [System.IO.Directory]::CreateDirectory($outputRootPackDirectory) | Out-Null
 [System.IO.Directory]::CreateDirectory($outputRootLicensesResultsDirectory) | Out-Null
 [System.IO.Directory]::CreateDirectory($outputRootPublishDirectory) | Out-Null
@@ -112,14 +118,14 @@ $gitTempMail = "carstenriedel@outlook.com"  # Assuming a placeholder email
 git config user.name $gitTempUser
 git config user.email $gitTempMail
 
-$solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
+
 #Delete-FilesByPattern -Path "$outputRootPackDirectory" -Pattern "*.nupkg"
 #$csprojFiles = Find-FilesByPattern -Path "C:\dev\github.com\carsten-riedel\STROM.ATOM.TOOL.Common\source" -Pattern "*.csproj"
 
 
 
 $commonParameters = @(
-    "--verbosity","quiet",
+    "--verbosity","minimal",
     "-p:""VersionBuild=$($result.VersionBuild)""",
     "-p:""VersionMajor=$($result.VersionMajor)""",
     "-p:""VersionMinor=$($result.VersionMinor)""",
@@ -134,9 +140,13 @@ $commonParameters = @(
     "-p:""OutputRootPublishDirectory=$outputRootPublishDirectory"""
 )
 
-
+$solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 
 foreach ($solutionFile in $solutionFiles) {
+
+    $outputReportDirectory = [System.IO.Path]::Combine($outputRootReportResultsDirectory, "$($solutionFile.BaseName)" , "$branchVersionFolder")
+    Ensure-Variable -Variable { $outputReportDirectory  } -ExitIfNullOrEmpty
+    [System.IO.Directory]::CreateDirectory($outputReportDirectory) | Out-Null
 
     Write-Host "===> Before DOTNET CLEAN at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
     $LASTEXITCODE = 0
@@ -184,28 +194,55 @@ foreach ($solutionFile in $solutionFiles) {
     $arguments = @("package", "--vulnerable", "--format", "json")
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     $jsonOutputVulnerable = & $dotnet $dotnetCommand $dotnetSolution @arguments  2>&1
-    #New-DotnetVulnerabilitiesReport -jsonInput $jsonOutputVulnerable -OutputFile "C:\temp\testv.md" -OutputFormat markdown -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -ExitOnVulnerability $true
-    New-DotnetVulnerabilitiesReport -jsonInput $jsonOutputVulnerable -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -ExitOnVulnerability $true
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    New-DotnetVulnerabilitiesReport -jsonInput $jsonOutputVulnerable -OutputFile "$outputReportDirectory\VulnerabilitiesReport.md" -OutputFormat markdown -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -ExitOnVulnerability $true
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
     Write-Host "===> After DOTNET LIST VULNERABLE elapsed after: $elapsed =========================================================" -ForegroundColor Green
 
-    Write-Output "===> Before vulnerable ======================================================="
-    dotnet list $solutionFile.FullName package --vulnerable --format json
-    $jsonOutputVulnerable = & dotnet list $solutionFile.FullName package --vulnerable --include-transitive  --format json 2>&1
-    #$jsonOutputOutdated = & dotnet list $solutionFile.FullName package --outdated --include-transitive  --format json 2>&1
-    #$jsonOutputDeprecated = & dotnet list $solutionFile.FullName package --deprecated --include-transitive  --format json 2>&1
-    $jsonOutputBom = & dotnet list $solutionFile.FullName package --include-transitive --format json 2>&1
-    $joinedString = $jsonOutputBom -join "`r`n"
-    New-DotnetBillOfMaterialsReport -jsonInput $jsonOutputBom -OutputFile "C:\temp\test.md" -OutputFormat markdown -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -IgnoreTransitivePackages $true
-    New-DotnetVulnerabilitiesReport -jsonInput $jsonOutputVulnerable -OutputFile "C:\temp\testv.md" -OutputFormat markdown -ExitOnVulnerability $true
-    Write-Output "===> After vulnerable ======================================================= $($stopwatch.Elapsed)"
+    Write-Host "===> Before DOTNET LIST PACKAGE DEPRECATED at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    $LASTEXITCODE = 0
+    $dotnet = "dotnet"
+    $dotnetCommand = "list"
+    $dotnetSolution = "$($solutionFile.FullName)"
+    $arguments = @("package", "--deprecated", "--include-transitive", "--format", "json")
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $jsonOutputDeprecated = & $dotnet $dotnetCommand $dotnetSolution @arguments
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    New-DotnetDeprecatedReport -jsonInput $jsonOutputDeprecated -OutputFile "$outputReportDirectory\DeprecatedReport.md" -OutputFormat markdown -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -IgnoreTransitivePackages $true -ExitOnDeprecated $true
+    $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
+    Write-Host "===> After DOTNET LIST PACKAGE DEPRECATED elapsed after: $elapsed =========================================================" -ForegroundColor Green
+
+    Write-Host "===> Before DOTNET LIST PACKAGE OUTDATED at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    $LASTEXITCODE = 0
+    $dotnet = "dotnet"
+    $dotnetCommand = "list"
+    $dotnetSolution = "$($solutionFile.FullName)"
+    $arguments = @("package", "--outdated", "--include-transitive", "--format", "json")
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $jsonOutputOutdated = & $dotnet $dotnetCommand $dotnetSolution @arguments
+    $joinedString = $jsonOutputOutdated -join "`r`n"
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    New-DotnetOutdatedReport -jsonInput $jsonOutputOutdated -OutputFile "$outputReportDirectory\OutdatedReport.md" -OutputFormat markdown -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -IgnoreTransitivePackages $true
+    $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
+    Write-Host "===> After DOTNET LIST PACKAGE OUTDATED elapsed after: $elapsed =========================================================" -ForegroundColor Green
+
+    Write-Host "===> Before DOTNET LIST PACKAGE BOM at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
+    $LASTEXITCODE = 0
+    $dotnet = "dotnet"
+    $dotnetCommand = "list"
+    $dotnetSolution = "$($solutionFile.FullName)"
+    $arguments = @("package", "--include-transitive", "--format", "json")
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $jsonOutputBom = & $dotnet $dotnetCommand $dotnetSolution @arguments
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    New-DotnetBillOfMaterialsReport -jsonInput $jsonOutputBom -OutputFile "$outputReportDirectory\BillOfMaterialsReport.md" -OutputFormat markdown -ProjectBlacklist @("STROM.ATOM.TOOL.Common.Tests") -IgnoreTransitivePackages $true
+    $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()    
+    Write-Host "===> After DOTNET LIST PACKAGE BOM elapsed after: $elapsed =========================================================" -ForegroundColor Green
 
 
     Write-Host "===> Before DOTNET nuget-license at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) ===============================================" -ForegroundColor Cyan
-    $targetSolutionLicensesDirectory = [System.IO.Path]::Combine($outputRootLicensesResultsDirectory, "$($solutionFile.BaseName)" , "$branchVersionFolder")
-    $targetSolutionLicensesJsonFile = [System.IO.Path]::Combine($targetSolutionLicensesDirectory ,"licenses.json")
-    $targetSolutionThirdPartyNoticesFile = [System.IO.Path]::Combine($targetSolutionLicensesDirectory ,"THIRD-PARTY-NOTICES.txt")
-    [System.IO.Directory]::CreateDirectory($targetSolutionLicensesDirectory) | Out-Null
+    $targetSolutionLicensesJsonFile = [System.IO.Path]::Combine($outputReportDirectory ,"licenses.json")
+    $targetSolutionThirdPartyNoticesFile = [System.IO.Path]::Combine($outputReportDirectory ,"THIRD-PARTY-NOTICES.txt")
     $LASTEXITCODE = 0
     $dotnet = "dotnet"
     $dotnetCommand = "nuget-license"
@@ -238,14 +275,8 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Output "===> After publish ======================================================== $($stopwatch.Elapsed)"
     $stopwatch.Restart()
 
-    Write-Output "===> Before outdated ======================================================="
-    dotnet dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.md" --output-format Markdown
-    dotnet dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.json" --output-format json
-    dotnet dotnet-outdated "$($solutionFile.FullName)" --no-restore --output "$targetDirOutdated\outdated.csv" --output-format csv
-    Write-Output "===> After outdated ======================================================== $($stopwatch.Elapsed)"
-    $stopwatch.Restart()
 
-    $fileItem = Get-Item -Path $targetSolutionLicensesFileOut
+    $fileItem = Get-Item -Path $targetSolutionThirdPartyNoticesFile
     $fileName = $fileItem.Name  # Includes extension (e.g., THIRD-PARTY-NOTICES.txt)
     $destinationPath = Join-Path -Path $topLevelDirectory -ChildPath $fileName
     Copy-Item -Path $fileItem.FullName -Destination $destinationPath -Force

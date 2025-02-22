@@ -366,4 +366,5 @@ FodyWeavers.xsd
 # Ignore files with any variation of "secret" in the name
 *[Ss][Ee][Cc][Rr][Ee][Tt]*
 /output/**/*
-/source/STROM.ATOM.TOOL.Common/STROM.ATOM.TOOL.Common.Tests/MSTestResults/**/*
+/reports/**/*
+/source/STROM.ATOM.TOOL.Common/STROM.ATOM.TOOL.Common.Tests/TestResults/**/*
