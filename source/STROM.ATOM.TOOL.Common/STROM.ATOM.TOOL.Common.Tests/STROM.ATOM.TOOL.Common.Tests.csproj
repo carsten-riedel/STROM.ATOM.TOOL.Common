@@ -23,15 +23,15 @@
 		 <Exclude>[*]STROM.ATOM.TOOL.Common.Commands.*</Exclude>
 		 -->
 
-		<OutputTestDir Condition="'$(OutputRootTestResultsDirectory)' != ''">$(OutputRootTestResultsDirectory)\$(AssemblyName)\$(BranchVersionFolder)</OutputTestDir>
-		<OutputTestDir Condition="'$(OutputRootTestResultsDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\TestResults\$(AssemblyName)\</OutputTestDir>
+		<OutputReportDir Condition="'$(OutputReportDirectory)' != ''">$(OutputReportDirectory)</OutputReportDir>
+		<OutputReportDir Condition="'$(OutputReportDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\TestResults\$(AssemblyName)\</OutputReportDir>
 
-		<ResultsDirectory>$(OutputTestDir)</ResultsDirectory>
+		<ResultsDirectory>$(OutputReportDir)</ResultsDirectory>
 		<CollectCoverage>true</CollectCoverage>
 		<CoverletOutputFormat>opencover,json</CoverletOutputFormat>
-		<CoverletOutput>$(OutputTestDir)/CoverletCoverage</CoverletOutput>
+		<CoverletOutput>$(MSBuildThisFileDirectory)bin/CoverletOutput</CoverletOutput>
 		<Include>[*]STROM.ATOM.TOOL.Common.Services.*</Include>
-		<VSTestLogger>trx%3bLogFileName=$(OutputTestDir)\$(MSBuildProjectName).trx;html%3bLogFileName=$(OutputTestDir)\$(MSBuildProjectName).html</VSTestLogger>
+		<VSTestLogger>trx%3bLogFileName=$(OutputReportDir)\ReportTestResult.trx;html%3bLogFileName=$(OutputReportDir)\ReportTestResult.html</VSTestLogger>
 		<!--
       Displays error on console in addition to the log file. Note that this feature comes with a performance impact.
       For more information, visit https://learn.microsoft.com/dotnet/core/testing/unit-testing-platform-integration-dotnet-test#show-failure-per-test
@@ -44,12 +44,6 @@
 		<IsPublishable>false</IsPublishable>
 		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<Compile Remove="MSTestResults\**" />
-		<EmbeddedResource Remove="MSTestResults\**" />
-		<None Remove="MSTestResults\**" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
@@ -74,7 +68,9 @@
 
 
 	<Target Name="GenerateHtmlCoverageReport" AfterTargets="GenerateCoverageResultAfterTest">
-		<ReportGenerator ReportFiles="@(CoverletReport)" TargetDirectory="$(OutputTestDir)" ReportTypes="Html;MarkdownSummaryGithub;MarkdownSummary;CsvSummary;Clover;Badges" />
+		<ReportGenerator ReportFiles="@(CoverletReport)" TargetDirectory="$(OutputReportDir)" ReportTypes="MarkdownSummaryGithub;CsvSummary" />
+		<Move SourceFiles="$(OutputReportDir)\Summary.csv" DestinationFiles="$(OutputReportDir)\ReportCoverageSummary.csv" />
+		<Move SourceFiles="$(OutputReportDir)\SummaryGithub.md" DestinationFiles="$(OutputReportDir)\ReportCoverageSummary.md" />
 	</Target>
 
 	<ItemGroup>

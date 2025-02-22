@@ -62,18 +62,22 @@
             }
 
             [TestMethod]
-            public async Task TestOsVersionServiceIntegration()
+            [DataRow(100)]
+            [DataRow(200)]
+            [DataRow(500)]
+            public async Task TestOsVersionServiceIntegration(int delay)
             {
                 // Resolve the service from the host's service provider.
                 if (host is null) throw new InvalidOperationException("Host is not initialized.");
                 IOsVersionService osVersionService = host.Services.GetRequiredService<IOsVersionService>();
 
                 // Call the service method with a short delay and a cancellation token.
-                await osVersionService.ShowOsVersion(100, CancellationToken.None);
+                await osVersionService.ShowOsVersion(delay, CancellationToken.None);
             }
 
             [TestMethod]
-            public void Versioning()
+            [DataRow(100)]
+            public void Versioning(int delay)
             {
                 var mapped2 = Utility.Utility.MapDateTimeToUShorts();
 

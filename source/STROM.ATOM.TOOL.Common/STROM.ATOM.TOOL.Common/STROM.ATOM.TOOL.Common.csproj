@@ -45,15 +45,13 @@
 		
 	</PropertyGroup>
 
-
-
 	<PropertyGroup Condition="'$(PackAsTool)' == 'true' ">
 		<ToolCommandName>satcom</ToolCommandName>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Stage)' == 'pack'">
 
-		<OutputPackDir Condition="'$(OutputRootPackDirectory)' != ''">$(OutputRootPackDirectory)\$(AssemblyName)\$(BranchVersionFolder)</OutputPackDir>
+		<OutputPackDir Condition="'$(OutputRootPackDirectory)' != ''">$(OutputRootPackDirectory)</OutputPackDir>
 		<OutputPackDir Condition="'$(OutputRootPackDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\pack\$(AssemblyName)</OutputPackDir>
 		<PackageOutputPath>$(OutputPackDir)</PackageOutputPath>
 		
@@ -81,7 +79,7 @@
 	<PropertyGroup Condition="'$(Stage)' == 'publish'">
 		<!-- Specify the target runtime; adjust as needed (e.g., win-x86, linux-x64) -->
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' != ''">$(OutputRootPublishDirectory)\$(AssemblyName)\$(BranchVersionFolder)</OutputPubDir>
+		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' != ''">$(OutputRootPublishDirectory)</OutputPubDir>
 		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' == ''">$(MSBuildThisFileDirectory)\bin\Output\publish\$(AssemblyName)</OutputPubDir>
 		<PublishDir>$(OutputPubDir)</PublishDir>
 		
