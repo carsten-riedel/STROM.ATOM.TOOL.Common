@@ -756,129 +756,7 @@ function New-DirectoryFromSegments {
     return $combinedPath
 }
 
-
 function Copy-FilesRecursively {
-    <#
-    .SYNOPSIS
-        Recursively copies files from a source directory to a destination directory.
-
-    .DESCRIPTION
-        This function copies files from the specified source directory to the destination directory.
-        The file filter (default "*") limits the files that are copied. The –CopyEmptyDirs parameter
-        controls directory creation:
-         - If $true (default), the complete source directory tree is recreated.
-         - If $false, only directories that contain at least one file matching the filter (in that
-           directory or any subdirectory) will be created.
-        The –ForceOverwrite parameter (default $true) determines whether existing files are overwritten.
-
-    .PARAMETER SourceDirectory
-        The directory from which files and directories are copied.
-
-    .PARAMETER DestinationDirectory
-        The target directory to which files and directories will be copied.
-
-    .PARAMETER Filter
-        A wildcard filter that limits which files are copied. Defaults to "*".
-
-    .PARAMETER CopyEmptyDirs
-        If $true, the entire directory structure from the source is recreated in the destination.
-        If $false, only directories that will contain at least one file matching the filter are created.
-        Defaults to $true.
-
-    .PARAMETER ForceOverwrite
-        A Boolean value that indicates whether existing files should be overwritten.
-        Defaults to $true.
-
-    .EXAMPLE
-        # Copy all *.txt files, but only create directories that actually hold matching files.
-        Copy-FilesRecursively -SourceDirectory "C:\Source" `
-                              -DestinationDirectory "C:\Dest" `
-                              -Filter "*.txt" `
-                              -CopyEmptyDirs $false `
-                              -ForceOverwrite $true
-
-    .EXAMPLE
-        # Copy all files and recreate the full directory tree.
-        Copy-FilesRecursively -SourceDirectory "C:\Source" `
-                              -DestinationDirectory "C:\Dest"
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$SourceDirectory,
-
-        [Parameter(Mandatory = $true)]
-        [string]$DestinationDirectory,
-
-        [Parameter()]
-        [string]$Filter = "*",
-
-        [Parameter()]
-        [bool]$CopyEmptyDirs = $true,
-
-        [Parameter()]
-        [bool]$ForceOverwrite = $true
-    )
-
-    # Validate source directory exists.
-    if (-not (Test-Path $SourceDirectory)) {
-        Write-Error "Source directory '$SourceDirectory' does not exist."
-        return
-    }
-
-    # Ensure destination root exists.
-    if (-not (Test-Path $DestinationDirectory)) {
-        New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
-    }
-
-    if ($CopyEmptyDirs) {
-        # Create the full directory structure from the source.
-        $allDirs = Get-ChildItem -Path $SourceDirectory -Recurse -Directory
-        # Include the source root.
-        $allDirs = @((Get-Item -Path $SourceDirectory)) + $allDirs
-        foreach ($dir in $allDirs) {
-            $relativePath = $dir.FullName.Substring($SourceDirectory.Length)
-            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
-                $relativePath = $relativePath.Substring(1)
-            }
-            $destDir = Join-Path $DestinationDirectory $relativePath
-            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
-        }
-    }
-    else {
-        # Only create directories that will eventually hold at least one file matching the filter.
-        $files = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
-        $directoriesToCreate = $files | ForEach-Object { $_.Directory.FullName } | Select-Object -Unique
-        foreach ($dir in $directoriesToCreate) {
-            $relativePath = $dir.Substring($SourceDirectory.Length)
-            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
-                $relativePath = $relativePath.Substring(1)
-            }
-            $destDir = Join-Path $DestinationDirectory $relativePath
-            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
-        }
-    }
-
-    # Now, copy files that match the filter.
-    $filesToCopy = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
-    foreach ($file in $filesToCopy) {
-        $relativePath = $file.FullName.Substring($SourceDirectory.Length)
-        if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
-            $relativePath = $relativePath.Substring(1)
-        }
-        $destPath = Join-Path $DestinationDirectory $relativePath
-        if ($ForceOverwrite) {
-            Copy-Item -Path $file.FullName -Destination $destPath -Force
-        }
-        else {
-            Copy-Item -Path $file.FullName -Destination $destPath
-        }
-    }
-
-    Write-Output "Files and directories have been copied to '$DestinationDirectory'."
-}
-
-function Copy-FilesRecursively2 {
     <#
     .SYNOPSIS
         Recursively copies files from a source directory to a destination directory.
@@ -921,17 +799,17 @@ function Copy-FilesRecursively2 {
 
     .EXAMPLE
         # Copy all *.txt files, create only directories that hold matching files, and clean extra files in the destination root.
-        Copy-FilesRecursively -SourceDirectory "C:\Source" `
-                              -DestinationDirectory "C:\Dest" `
-                              -Filter "*.txt" `
-                              -CopyEmptyDirs $false `
-                              -ForceOverwrite $true `
-                              -CleanDestination $true
+        Copy-FilesRecursively2 -SourceDirectory "C:\Source" `
+                               -DestinationDirectory "C:\Dest" `
+                               -Filter "*.txt" `
+                               -CopyEmptyDirs $false `
+                               -ForceOverwrite $true `
+                               -CleanDestination $true
 
     .EXAMPLE
         # Copy all files, recreate the full directory tree without cleaning extra files.
-        Copy-FilesRecursively -SourceDirectory "C:\Source" `
-                              -DestinationDirectory "C:\Dest"
+        Copy-FilesRecursively2 -SourceDirectory "C:\Source" `
+                               -DestinationDirectory "C:\Dest"
     #>
     [CmdletBinding()]
     param (
@@ -954,76 +832,166 @@ function Copy-FilesRecursively2 {
         [bool]$CleanDestination = $false
     )
 
-    # Validate source directory exists.
-    if (-not (Test-Path $SourceDirectory)) {
+    # Validate that the source directory exists.
+    if (-not (Test-Path -Path $SourceDirectory -PathType Container)) {
         Write-Error "Source directory '$SourceDirectory' does not exist."
         return
     }
 
-    # Ensure destination root exists.
-    if (-not (Test-Path $DestinationDirectory)) {
-        New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+    # If CopyEmptyDirs is false, check if there are any files matching the filter.
+    if (-not $CopyEmptyDirs) {
+        $matchingFiles = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter -ErrorAction SilentlyContinue
+        if (-not $matchingFiles -or $matchingFiles.Count -eq 0) {
+            Write-Verbose "No files matching filter found in source. Skipping directory creation as CopyEmptyDirs is false."
+            return
+        }
     }
 
-    if ($CopyEmptyDirs) {
-        # Create the full directory structure from the source.
-        $allDirs = Get-ChildItem -Path $SourceDirectory -Recurse -Directory
-        # Include the source root.
-        $allDirs = @((Get-Item -Path $SourceDirectory)) + $allDirs
-        foreach ($dir in $allDirs) {
-            $relativePath = $dir.FullName.Substring($SourceDirectory.Length)
-            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
-                $relativePath = $relativePath.Substring(1)
+    # Create the destination directory if it doesn't exist.
+    if (-not (Test-Path -Path $DestinationDirectory -PathType Container)) {
+        New-Item -ItemType Directory -Path $DestinationDirectory | Out-Null
+    }
+
+    # If CleanDestination is enabled, remove files in the destination root that aren't in the source root.
+    if ($CleanDestination) {
+        Write-Verbose "Cleaning destination root: removing extra files not present in source."
+        $destRootFiles = Get-ChildItem -Path $DestinationDirectory -File -Filter $Filter
+        foreach ($destFile in $destRootFiles) {
+            $sourceFilePath = Join-Path -Path $SourceDirectory -ChildPath $destFile.Name
+            if (-not (Test-Path -Path $sourceFilePath -PathType Leaf)) {
+                Write-Verbose "Removing file: $($destFile.FullName)"
+                Remove-Item -Path $destFile.FullName -Force
             }
-            $destDir = Join-Path $DestinationDirectory $relativePath
-            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+    }
+
+    # Set full paths for easier manipulation.
+    $sourceFullPath = (Get-Item $SourceDirectory).FullName.TrimEnd('\')
+    $destFullPath   = (Get-Item $DestinationDirectory).FullName.TrimEnd('\')
+
+    if ($CopyEmptyDirs) {
+        Write-Verbose "Recreating complete directory structure from source."
+        # Recreate every directory under the source.
+        Get-ChildItem -Path $sourceFullPath -Recurse -Directory | ForEach-Object {
+            $relativePath = $_.FullName.Substring($sourceFullPath.Length)
+            $newDestDir   = Join-Path -Path $destFullPath -ChildPath $relativePath
+            if (-not (Test-Path -Path $newDestDir)) {
+                New-Item -ItemType Directory -Path $newDestDir | Out-Null
+            }
         }
     }
     else {
-        # Only create directories that will eventually hold at least one file matching the filter.
-        $files = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
-        $directoriesToCreate = $files | ForEach-Object { $_.Directory.FullName } | Select-Object -Unique
-        foreach ($dir in $directoriesToCreate) {
-            $relativePath = $dir.Substring($SourceDirectory.Length)
-            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
-                $relativePath = $relativePath.Substring(1)
+        Write-Verbose "Creating directories only for files matching the filter."
+        # Using previously obtained $matchingFiles.
+        foreach ($file in $matchingFiles) {
+            $sourceDir   = Split-Path -Path $file.FullName -Parent
+            $relativeDir = $sourceDir.Substring($sourceFullPath.Length)
+            $newDestDir  = Join-Path -Path $destFullPath -ChildPath $relativeDir
+            if (-not (Test-Path -Path $newDestDir)) {
+                New-Item -ItemType Directory -Path $newDestDir | Out-Null
             }
-            $destDir = Join-Path $DestinationDirectory $relativePath
-            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
         }
     }
 
-    # Copy files that match the filter.
-    $filesToCopy = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
+    # Copy files matching the filter, preserving relative paths.
+    Write-Verbose "Copying files from source to destination."
+    if ($CopyEmptyDirs) {
+        $filesToCopy = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
+    }
+    else {
+        $filesToCopy = $matchingFiles
+    }
     foreach ($file in $filesToCopy) {
-        $relativePath = $file.FullName.Substring($SourceDirectory.Length)
-        if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
-            $relativePath = $relativePath.Substring(1)
+        $relativePath = $file.FullName.Substring($sourceFullPath.Length)
+        $destFile     = Join-Path -Path $destFullPath -ChildPath $relativePath
+
+        # Skip copying if overwrite is disabled and the file already exists.
+        if (-not $ForceOverwrite -and (Test-Path -Path $destFile)) {
+            Write-Verbose "Skipping existing file (overwrite disabled): $destFile"
+            continue
         }
-        $destPath = Join-Path $DestinationDirectory $relativePath
+
+        # Ensure the destination directory exists.
+        $destDir = Split-Path -Path $destFile -Parent
+        if (-not (Test-Path -Path $destDir)) {
+            New-Item -ItemType Directory -Path $destDir | Out-Null
+        }
+
+        Write-Verbose "Copying file: $($file.FullName) to $destFile"
         if ($ForceOverwrite) {
-            Copy-Item -Path $file.FullName -Destination $destPath -Force
+            Copy-Item -Path $file.FullName -Destination $destFile -Force
         }
         else {
-            Copy-Item -Path $file.FullName -Destination $destPath
+            Copy-Item -Path $file.FullName -Destination $destFile
         }
     }
-
-    # Remove extra files in the destination root if the parameter is enabled.
-    if ($CleanDestination) {
-        # Get only top-level files in destination.
-        $destRootFiles = Get-ChildItem -Path $DestinationDirectory -File
-        # Get expected files from the source root that match the filter.
-        $sourceRootFiles = Get-ChildItem -Path $SourceDirectory -File -Filter $Filter
-        $expectedNames = $sourceRootFiles | ForEach-Object { $_.Name }
-        foreach ($file in $destRootFiles) {
-            if (-not ($expectedNames -contains $file.Name)) {
-                Remove-Item -Path $file.FullName -Force
-            }
-        }
-    }
-
-    Write-Output "Files and directories have been copied to '$DestinationDirectory'."
 }
+
+function Set-DotNetNugetSource {
+    <#
+    .SYNOPSIS
+        Configures a dotnet NuGet source.
+
+    .DESCRIPTION
+        This function sets up a NuGet source for dotnet by performing the following steps:
+         - Lists the current NuGet sources.
+         - Removes any existing source with the specified source name.
+         - Creates the destination directory (defaulting to "$HOME/source/packages") if it doesn't exist.
+         - Adds the new NuGet source using the platform-independent destination path.
+         - Enables the new NuGet source.
+
+    .PARAMETER SourceName
+        The name of the NuGet source to configure.
+
+    .PARAMETER DestinationDirectory
+        The directory path for the NuGet source. If not specified, defaults to "$HOME/source/packages".
+        The path is normalized to use the platform-specific directory separator.
+
+    .EXAMPLE
+        Set-DotNetNugetSource -SourceName "SourcePackages"
+        # This creates (if necessary) a directory "$HOME/source/packages", removes any existing source named "SourcePackages",
+        # adds it as a NuGet source, and then enables it.
+
+    .EXAMPLE
+        Set-DotNetNugetSource -SourceName "CustomSource" -DestinationDirectory "/custom/nuget/packages"
+        # This will normalize the destination path based on the OS and perform the same operations.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$SourceName,
+
+        [Parameter(Mandatory = $false)]
+        [string]$DestinationDirectory
+    )
+
+    # Default the destination directory if not provided.
+    if (-not $DestinationDirectory) {
+        $DestinationDirectory = Join-Path -Path $HOME -ChildPath "source/packages"
+    }
+
+    # Normalize the directory separators to the platform default.
+    $dirSep = [System.IO.Path]::DirectorySeparatorChar
+    $DestinationDirectory = $DestinationDirectory -replace '[\\/]', $dirSep
+
+    # Create the destination directory if it does not exist.
+    if (-not (Test-Path -Path $DestinationDirectory -PathType Container)) {
+        New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+        Write-Verbose "Created directory: $DestinationDirectory"
+    }
+
+    # List current dotnet nuget sources.
+    #dotnet nuget list source
+
+    # Remove any existing source with the provided name.
+    dotnet nuget remove source $SourceName
+
+    # Add the new NuGet source using the destination directory.
+    dotnet nuget add source "$DestinationDirectory" -n $SourceName
+
+    # Enable the newly added source.
+    dotnet nuget enable source $SourceName
+}
+
 
 

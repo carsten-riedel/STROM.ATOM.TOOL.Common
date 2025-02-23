@@ -157,7 +157,7 @@ function Translate-FirstSegment {
         }
     }
     
-    if ($translated) {
+    if ( -not ($null -eq $translated) ) {
         $Segments[0] = $translated
     }
     else {

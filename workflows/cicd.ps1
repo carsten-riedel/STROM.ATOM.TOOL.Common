@@ -5,6 +5,8 @@
 
 $env:MSBUILDTERMINALLOGGER = "off" # Disables the terminal logger to ensure full build output is displayed in the console
 
+Set-DotNetNugetSource -SourceName "SourcePackages"
+
 # Use for cleaning local enviroment only, use channelRoot for deployment.
 $isCiCd = $false
 $isLocal = $false
@@ -47,7 +49,7 @@ $topLevelDirectory = Get-GitTopLevelDirectory
 
 #Branch too channel mappings
 $branchSegments = @(Split-Segments -InputString "$currentBranch" -ForbiddenSegments @("latest") -MaxSegments 2)
-$nugetSuffix = Translate-FirstSegment -Segments $branchSegments[0] -TranslationTable @{ "feature" = "development"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = ""; "master" = ""; "hotfix" = "" } -DefaultTranslation "{nodeploy}"
+$nugetSuffix = @(Translate-FirstSegment -Segments $branchSegments -TranslationTable @{ "feature" = "-development"; "develop" = "-quality"; "bugfix" = "-quality"; "release" = "-staging"; "main" = ""; "master" = ""; "hotfix" = "" } -DefaultTranslation "{nodeploy}")
 $channelSegments = @(Translate-FirstSegment -Segments $branchSegments -TranslationTable @{ "feature" = "development"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}")
 
 $branchFolder = Join-Segments -Segments $branchSegments
@@ -175,7 +177,7 @@ foreach ($projectFile in $projectFiles) {
         "-p:""VersionMajor=$($calculatedVersion.VersionMajor)""",
         "-p:""VersionMinor=$($calculatedVersion.VersionMinor)""",
         "-p:""VersionRevision=$($calculatedVersion.VersionRevision)""",
-        "-p:""VersionSuffix=-$($nugetSuffix)""",
+        "-p:""VersionSuffix=$($nugetSuffix)""",
         "-p:""BranchFolder=$branchFolder""",
         "-p:""BranchVersionFolder=$branchVersionFolder""",
         "-p:""ChannelVersionFolder=$channelVersionFolder""",
@@ -356,41 +358,80 @@ foreach ($projectFile in $projectFiles) {
     } elseif ($channelRoot.ToLower() -in @("development")) {
         if ($isLocal)
         {
-            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            #Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-        }
+            $destinationPublishDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
 
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget push "$($firstFileMatch.FullName)" --source SourcePackages
+        }
+        if ($isCiCd)
+        {
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+        }
     } elseif ($channelRoot.ToLower() -in @("quality")) {
         if ($isLocal)
         {
-            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            #Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            $destinationPublishDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget push "$($firstFileMatch.FullName)" --source SourcePackages
+        }
+        if ($isCiCd)
+        {
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
         }
     } elseif ($channelRoot.ToLower() -in @("staging")) {
         if ($isLocal)
         {
-            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            #Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            $destinationPublishDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget push "$($firstFileMatch.FullName)" --source SourcePackages
+        }
+        if ($isCiCd)
+        {
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+            
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
         }
     } elseif ($channelRoot.ToLower() -in @("production")) {
         if ($isLocal)
         {
-            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
-            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            $destinationPublishDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationPublishDirectory" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget push "$($firstFileMatch.FullName)" --source SourcePackages
+        }
+        if ($isCiCd)
+        {
+            $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+
+            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_PAT --source https://api.nuget.org/v3/index.json
         }
     } else {
         <# Action when all if and elseif conditions are false #>
     }
 
 }
+
 
 exit 0
 
