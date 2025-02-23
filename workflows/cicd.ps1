@@ -1,7 +1,7 @@
-. "$PSScriptRoot\version.ps1"
 . "$PSScriptRoot\psutility\mapper.ps1"
 . "$PSScriptRoot\psutility\common.ps1"
 . "$PSScriptRoot\psutility\dotnetlist.ps1"
+. "$PSScriptRoot\version.ps1"
 
 $env:MSBUILDTERMINALLOGGER = "off" # Disables the terminal logger to ensure full build output is displayed in the console
 
