@@ -115,7 +115,7 @@ $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern 
 foreach ($solutionFile in $solutionFiles) {
 
     $commonSolutionParameters = @(
-        "--verbosity","minimal",
+        "--verbosity","normal",
         "-p:""VersionBuild=$($calculatedVersion.VersionBuild)""",
         "-p:""VersionMajor=$($calculatedVersion.VersionMajor)""",
         "-p:""VersionMinor=$($calculatedVersion.VersionMinor)""",
@@ -165,7 +165,6 @@ foreach ($solutionFile in $solutionFiles) {
 Write-Host "===> Projects =========================================================" -ForegroundColor Green
 Write-Host "===> Projects =========================================================" -ForegroundColor Green
 Write-Host "===> Projects =========================================================" -ForegroundColor Green
-Write-Host "===> Projects =========================================================" -ForegroundColor Green
 
 
 $projectFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.csproj"
@@ -178,7 +177,7 @@ foreach ($projectFile in $projectFiles) {
     $outputArtifactPublishDirectory = New-DirectoryFromSegments -Paths @($outputArtifactsDirectory , "publish")
 
     $commonProjectParameters = @(
-        "--verbosity","minimal",
+        "--verbosity","normal",
         "-p:""VersionBuild=$($calculatedVersion.VersionBuild)""",
         "-p:""VersionMajor=$($calculatedVersion.VersionMajor)""",
         "-p:""VersionMinor=$($calculatedVersion.VersionMinor)""",
@@ -349,6 +348,11 @@ foreach ($projectFile in $projectFiles) {
     #git push origin $currentBranch
 }
 
+# Deploy ------------------------------------
+Write-Host "===> Deploying channel: '$($channelRoot.ToLower())' | Local: $($isLocal.ToString()) | CI/CD: $($isCiCd.ToString()) =======================" -ForegroundColor Green
+Write-Host "===> Deploying channel: '$($channelRoot.ToLower())' | Local: $($isLocal.ToString()) | CI/CD: $($isCiCd.ToString()) =======================" -ForegroundColor Green
+Write-Host "===> Deploying channel: '$($channelRoot.ToLower())' | Local: $($isLocal.ToString()) | CI/CD: $($isCiCd.ToString()) =======================" -ForegroundColor Green
+
 foreach ($projectFile in $projectFiles) {
 
     $outputReportDirectory = New-DirectoryFromSegments -Paths @($outputRootReportResultsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
@@ -374,6 +378,7 @@ foreach ($projectFile in $projectFiles) {
         if ($isCiCd)
         {
             $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
+
             dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
             dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
         }
