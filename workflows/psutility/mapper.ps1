@@ -84,7 +84,7 @@ function Split-Segments {
     }
     
     # Return the segments array.
-    return $segments
+    return @($segments)
 }
 
 function Translate-FirstSegment {
@@ -164,7 +164,7 @@ function Translate-FirstSegment {
         $Segments[0] = $DefaultTranslation
     }
     
-    return $Segments
+    return @($Segments)
 }
 
 

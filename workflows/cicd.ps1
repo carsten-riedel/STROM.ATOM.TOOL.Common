@@ -1,8 +1,20 @@
+. "$PSScriptRoot\version.ps1"
 . "$PSScriptRoot\psutility\mapper.ps1"
 . "$PSScriptRoot\psutility\common.ps1"
 . "$PSScriptRoot\psutility\dotnetlist.ps1"
 
 $env:MSBUILDTERMINALLOGGER = "off" # Disables the terminal logger to ensure full build output is displayed in the console
+
+# Use for cleaning local enviroment only, use channelRoot for deployment.
+$isCiCd = $false
+$isLocal = $false
+if ($env:GITHUB_ACTIONS -ieq "true")
+{
+    $isCiCd = $true
+}
+else {
+    $isLocal = $true
+}
 
 Write-Host "===> Before DOTNET TOOL RESTORE at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) ========================================================" -ForegroundColor Cyan
 Set-Location "$PSScriptRoot\.."
@@ -28,46 +40,35 @@ if (Test-Path "$PSScriptRoot/cicd_secrets.ps1") {
     Write-Host "Secrets will be taken from args."
 }
 
-
-$result = DateTimeVersionConverter64Seconds -VersionBuild 0 -VersionMajor 2
 $currentBranch = Get-GitCurrentBranch
-
-#Branch too channel mappings
-$branchSegments = Split-Segments -InputString "$currentBranch" -ForbiddenSegments @("latest") -MaxSegments 2
-#$channelSegments = Translate-FirstSegment -Segments $branchSegments -TranslationTable @{ "feature" = "development"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}"
-#$channelSegments = Translate-FirstSegment -Segments $branchSegments -TranslationTable @{ "feature" = "{nodeploy}"; "develop" = "quality"; "bugfix" = "quality"; "release" = "{nodeploy}"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}"
-$channelSegments = Translate-FirstSegment -Segments $branchSegments -TranslationTable @{ "feature" = "local"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}"
-
-$branchFolder = Join-Segments -Segments $branchSegments
-$branchVersionFolder = Join-Segments -Segments $branchSegments -AppendSegments @( $result.VersionFull )
-
-$channelVersionFolder = Join-Segments -Segments $channelSegments -AppendSegments @( $result.VersionFull )
-$channelVersionFolderRoot = Join-Segments -Segments $channelSegments -AppendSegments @( "latest" )
-
-if ($channelSegments.Count -eq 2)
-{
-    $channelVersionFolderRoot = Join-Segments -Segments $channelSegments[0] -AppendSegments @( "latest" )
-}
-
-if (-not $channelVersionFolder.StartsWith("{nodeploy}"))
-{
-    Write-Output "ChannelVersionFolderRoot to $channelVersionFolderRoot"
-}
-else {
-    $channelVersionFolder = ""
-    $channelVersionFolderRoot = ""
-}
-
-Write-Output "BranchFolder to $branchFolder"
-Write-Output "BranchVersionFolder to $branchVersionFolder"
-Write-Output "ChannelVersionFolder to $channelVersionFolder"
-Write-Output "ChannelVersionFolderRoot to $channelVersionFolderRoot"
 
 $currentBranchRoot = Get-BranchRoot -BranchName "$currentBranch"
 $topLevelDirectory = Get-GitTopLevelDirectory
 
+#Branch too channel mappings
+$branchSegments = @(Split-Segments -InputString "$currentBranch" -ForbiddenSegments @("latest") -MaxSegments 2)
+$nugetSuffix = Translate-FirstSegment -Segments $branchSegments[0] -TranslationTable @{ "feature" = "development"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = ""; "master" = ""; "hotfix" = "" } -DefaultTranslation "{nodeploy}"
+$channelSegments = @(Translate-FirstSegment -Segments $branchSegments -TranslationTable @{ "feature" = "development"; "develop" = "quality"; "bugfix" = "quality"; "release" = "staging"; "main" = "production"; "master" = "production"; "hotfix" = "production" } -DefaultTranslation "{nodeploy}")
+
+$branchFolder = Join-Segments -Segments $branchSegments
+$branchVersionFolder = Join-Segments -Segments $branchSegments -AppendSegments @( $calculatedVersion.VersionFull )
+$channelRoot = $channelSegments[0]
+$channelVersionFolder = Join-Segments -Segments $channelSegments -AppendSegments @( $calculatedVersion.VersionFull )
+$channelVersionFolderRoot = Join-Segments -Segments $channelSegments -AppendSegments @( "latest" )
+if ($channelSegments.Count -eq 2)
+{
+    $channelVersionFolderRoot = Join-Segments -Segments $channelRoot -AppendSegments @( "latest" )
+}
+
+
+Write-Output "BranchFolder to $branchFolder"
+Write-Output "BranchVersionFolder to $branchVersionFolder"
+Write-Output "ChannelRoot to $channelRoot"
+Write-Output "ChannelVersionFolder to $channelVersionFolder"
+Write-Output "ChannelVersionFolderRoot to $channelVersionFolderRoot"
+
 #Guard for variables
-Ensure-Variable -Variable { $result } -ExitIfNullOrEmpty
+Ensure-Variable -Variable { $calculatedVersion } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $currentBranch } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $currentBranchRoot } -ExitIfNullOrEmpty
 Ensure-Variable -Variable { $topLevelDirectory } -ExitIfNullOrEmpty
@@ -91,6 +92,9 @@ Ensure-Variable -Variable { $targetConfigAllowedLicenses } -ExitIfNullOrEmpty
 [System.IO.Directory]::CreateDirectory($outputRootArtifactsDirectory) | Out-Null
 [System.IO.Directory]::CreateDirectory($outputRootReportResultsDirectory) | Out-Null
 
+if (-not $isCiCd) { Delete-FilesByPattern -Path "$outputRootArtifactsDirectory" -Pattern "*"  }
+if (-not $isCiCd) { Delete-FilesByPattern -Path "$outputRootReportResultsDirectory" -Pattern "*"  }
+
 # Get current Git user settings once before the loop
 $gitUserLocal = git config user.name
 $gitMailLocal = git config user.email
@@ -101,9 +105,7 @@ $gitTempMail = "carstenriedel@outlook.com"  # Assuming a placeholder email
 git config user.name $gitTempUser
 git config user.email $gitTempMail
 
-
-#Delete-FilesByPattern -Path "$outputRootPackDirectory" -Pattern "*.nupkg"
-#$csprojFiles = Find-FilesByPattern -Path "C:\dev\github.com\carsten-riedel\STROM.ATOM.TOOL.Common\source" -Pattern "*.csproj"
+# Solutions clean restore and build ------------------------------------
 
 $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.sln"
 
@@ -111,10 +113,10 @@ foreach ($solutionFile in $solutionFiles) {
 
     $commonSolutionParameters = @(
         "--verbosity","minimal",
-        "-p:""VersionBuild=$($result.VersionBuild)""",
-        "-p:""VersionMajor=$($result.VersionMajor)""",
-        "-p:""VersionMinor=$($result.VersionMinor)""",
-        "-p:""VersionRevision=$($result.VersionRevision)"""
+        "-p:""VersionBuild=$($calculatedVersion.VersionBuild)""",
+        "-p:""VersionMajor=$($calculatedVersion.VersionMajor)""",
+        "-p:""VersionMinor=$($calculatedVersion.VersionMinor)""",
+        "-p:""VersionRevision=$($calculatedVersion.VersionRevision)"""
     )
   
     Write-Host "===> Before DOTNET CLEAN at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
@@ -156,31 +158,32 @@ foreach ($solutionFile in $solutionFiles) {
     Write-Host "===> After DOTNET BUILD elapsed after: $elapsed =========================================================" -ForegroundColor Green
 }
 
+# Projects clean restore and build ------------------------------------
+
 $projectFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.csproj"
 
 foreach ($projectFile in $projectFiles) {
 
-    $outputReportDirectory = [System.IO.Path]::Combine($outputRootReportResultsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
-    $outputArtifactsDirectory = [System.IO.Path]::Combine($outputRootArtifactsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
-    Ensure-Variable -Variable { $outputReportDirectory  } -ExitIfNullOrEmpty
-    Ensure-Variable -Variable { $outputArtifactsDirectory  } -ExitIfNullOrEmpty
-    [System.IO.Directory]::CreateDirectory($outputReportDirectory) | Out-Null
-    [System.IO.Directory]::CreateDirectory($outputArtifactsDirectory) | Out-Null
+    $outputReportDirectory = New-DirectoryFromSegments -Paths @($outputRootReportResultsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
+    $outputArtifactsDirectory = New-DirectoryFromSegments -Paths @($outputRootArtifactsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
+    $outputArtifactPackDirectory = New-DirectoryFromSegments -Paths @($outputArtifactsDirectory , "pack")
+    $outputArtifactPublishDirectory = New-DirectoryFromSegments -Paths @($outputArtifactsDirectory , "publish")
 
     $commonProjectParameters = @(
         "--verbosity","minimal",
-        "-p:""VersionBuild=$($result.VersionBuild)""",
-        "-p:""VersionMajor=$($result.VersionMajor)""",
-        "-p:""VersionMinor=$($result.VersionMinor)""",
-        "-p:""VersionRevision=$($result.VersionRevision)""",
-        "-p:""VersionSuffix=-$($channelSegments[0])""",
+        "-p:""VersionBuild=$($calculatedVersion.VersionBuild)""",
+        "-p:""VersionMajor=$($calculatedVersion.VersionMajor)""",
+        "-p:""VersionMinor=$($calculatedVersion.VersionMinor)""",
+        "-p:""VersionRevision=$($calculatedVersion.VersionRevision)""",
+        "-p:""VersionSuffix=-$($nugetSuffix)""",
         "-p:""BranchFolder=$branchFolder""",
         "-p:""BranchVersionFolder=$branchVersionFolder""",
         "-p:""ChannelVersionFolder=$channelVersionFolder""",
         "-p:""ChannelVersionFolderRoot=$channelVersionFolderRoot""",
         "-p:""OutputReportDirectory=$outputReportDirectory""",
-        "-p:""OutputRootPackDirectory=$outputArtifactsDirectory/pack""",
-        "-p:""OutputRootPublishDirectory=$outputArtifactsDirectory/publish"""
+        "-p:""OutputArtifactsDirectory=$outputArtifactsDirectory""",
+        "-p:""OutputArtifactPackDirectory=$outputArtifactPackDirectory""",
+        "-p:""OutputArtifactPublishDirectory=$outputArtifactPublishDirectory"""
     )
 
     Write-Host "===> Before DOTNET CLEAN at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =======================================================" -ForegroundColor Cyan
@@ -292,20 +295,41 @@ foreach ($projectFile in $projectFiles) {
     $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
     Write-Host "===> After DOTNET nuget-license elapsed after: $elapsed =================================================" -ForegroundColor Green
 
-    Write-Output "===> Before test =========================================================="
-    dotnet test $projectFile.FullName -c Release -p:"Stage=test" @commonProjectParameters
-    Write-Output "===> After test =========================================================== $($stopwatch.Elapsed)"
-    $stopwatch.Restart()
+    Write-Host "===> Before DOTNET TEST at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) ========================================================" -ForegroundColor Cyan
+    $LASTEXITCODE = 0
+    $dotnet = "dotnet"
+    $dotnetCommand = "test"
+    $dotnetProject = @("$($projectFile.FullName)")
+    $arguments = @("-c", "Release", "-p:""Stage=test""")
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    & $dotnet $dotnetCommand @dotnetProject @arguments @commonProjectParameters
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
+    Write-Host "===> After DOTNET TEST elapsed after: $elapsed ==========================================================" -ForegroundColor Green
 
-    Write-Output "===> Before pack =========================================================="
-    dotnet pack $projectFile.FullName -p:"Stage=pack" -c Release @commonProjectParameters
-    Write-Output "===> After pack =========================================================== $($stopwatch.Elapsed)"
-    $stopwatch.Restart()
+    Write-Host "===> Before DOTNET PACK at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) ========================================================" -ForegroundColor Cyan
+    $LASTEXITCODE = 0
+    $dotnet = "dotnet"
+    $dotnetCommand = "pack"
+    $dotnetProject = @("$($projectFile.FullName)")
+    $arguments = @("-c", "Release", "-p:""Stage=pack""")
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    & $dotnet $dotnetCommand @dotnetProject @arguments @commonProjectParameters
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
+    Write-Host "===> After DOTNET PACK elapsed after: $elapsed ==========================================================" -ForegroundColor Green
 
-    Write-Output "===> Before publish ======================================================="
-    dotnet publish $projectFile.FullName -p:"Stage=publish" -c Release @commonProjectParameters
-    Write-Output "===> After publish ======================================================== $($stopwatch.Elapsed)"
-    $stopwatch.Restart()
+    Write-Host "===> Before DOTNET PUBLISH at $([datetime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) (UTC) =====================================================" -ForegroundColor Cyan
+    $LASTEXITCODE = 0
+    $dotnet = "dotnet"
+    $dotnetCommand = "publish"
+    $dotnetProject = @("$($projectFile.FullName)")
+    $arguments = @("-c", "Release", "-p:""Stage=publish""")
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    & $dotnet $dotnetCommand @dotnetProject @arguments @commonProjectParameters
+    if ($LASTEXITCODE -ne 0) { Write-Error "Command failed with exit code $LASTEXITCODE. Exiting script." -ForegroundColor Red ; exit $LASTEXITCODE }
+    $elapsed = $stopwatch.Elapsed.ToString("hh\:mm\:ss\.fff") ; $stopwatch.Stop()
+    Write-Host "===> After DOTNET PUBLISH elapsed after: $elapsed =======================================================" -ForegroundColor Green
 
     #$fileItem = Get-Item -Path $targetSolutionThirdPartyNoticesFile
     #$fileName = $fileItem.Name  # Includes extension (e.g., THIRD-PARTY-NOTICES.txt)
@@ -316,7 +340,60 @@ foreach ($projectFile in $projectFiles) {
     #git commit -m "Updated from Workflow [no ci]"
     #git push origin $currentBranch
 }
+
+foreach ($projectFile in $projectFiles) {
+
+    $outputReportDirectory = New-DirectoryFromSegments -Paths @($outputRootReportResultsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
+    $outputArtifactsDirectory = New-DirectoryFromSegments -Paths @($outputRootArtifactsDirectory, "$($projectFile.BaseName)" , "$branchVersionFolder")
+    $outputArtifactPackDirectory = New-DirectoryFromSegments -Paths @($outputArtifactsDirectory , "pack")
+    $outputArtifactPublishDirectory = New-DirectoryFromSegments -Paths @($outputArtifactsDirectory , "publish")
+
+    $publishCopyDir = "C:\temp"
+
+    if ($channelRoot.ToLower() -in @("{nodeploy}"))
+    {
+        Write-Host "===> $channelRoot is {nodeploy} skipping ================================================================" -ForegroundColor Green
+    } elseif ($channelRoot.ToLower() -in @("development")) {
+        if ($isLocal)
+        {
+            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            #Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+        }
+
+    } elseif ($channelRoot.ToLower() -in @("quality")) {
+        if ($isLocal)
+        {
+            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            #Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+        }
+    } elseif ($channelRoot.ToLower() -in @("staging")) {
+        if ($isLocal)
+        {
+            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            #Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+        }
+    } elseif ($channelRoot.ToLower() -in @("production")) {
+        if ($isLocal)
+        {
+            $destinationRootDirectory = New-DirectoryFromSegments -Paths @($publishCopyDir, "$($projectFile.BaseName)")
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolder" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory\$channelVersionFolderRoot" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+            Copy-FilesRecursively2 -SourceDirectory "$outputArtifactPublishDirectory" -DestinationDirectory "$destinationRootDirectory" -Filter "*" -CopyEmptyDirs $false -ForceOverwrite $true -CleanDestination $true
+        }
+    } else {
+        <# Action when all if and elseif conditions are false #>
+    }
+
+}
+
 exit 0
+
 $stopwatch.Stop()
 
 git config user.name $gitUserLocal

@@ -41,7 +41,7 @@
 
 	<!-- Company and copyright information -->
 	<PropertyGroup>
-		<Copyright>Copyright (c) 2025 Carsten Riedel Copyright © 2025 Carsten Riedel</Copyright>
+		<Copyright>Copyright (c) 2025 Carsten Riedel</Copyright>
 		<Company></Company>
 	</PropertyGroup>
 
@@ -51,8 +51,8 @@
 
 	<PropertyGroup Condition="'$(Stage)' == 'pack'">
 
-		<OutputPackDir Condition="'$(OutputRootPackDirectory)' != ''">$(OutputRootPackDirectory)</OutputPackDir>
-		<OutputPackDir Condition="'$(OutputRootPackDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\pack\$(AssemblyName)</OutputPackDir>
+		<OutputPackDir Condition="'$(OutputArtifactPackDirectory)' != ''">$(OutputArtifactPackDirectory)</OutputPackDir>
+		<OutputPackDir Condition="'$(OutputArtifactPackDirectory)' == ''">$(MSBuildThisFileDirectory)bin\Output\pack\$(AssemblyName)</OutputPackDir>
 		<PackageOutputPath>$(OutputPackDir)</PackageOutputPath>
 
 		<Authors>Carsten Riedel</Authors>
@@ -66,7 +66,8 @@
 			<![CDATA[STROM.ATOM.TOOL.Common is a multi-purpose command-line .NET tool, containing a suite of helper functionalities.]]>
 		</Description>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
-		<PackageLicenseFile>License.txt</PackageLicenseFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<!-- <PackageLicenseFile>License.txt</PackageLicenseFile> -->
 		<PackageIcon>STROM128.png</PackageIcon>
 		<PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildThisFileDirectory)AddPackageFiles\ReleaseNotes.txt"))</PackageReleaseNotes>
 	</PropertyGroup>
@@ -79,8 +80,8 @@
 	<PropertyGroup Condition="'$(Stage)' == 'publish'">
 		<!-- Specify the target runtime; adjust as needed (e.g., win-x86, linux-x64) -->
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' != ''">$(OutputRootPublishDirectory)</OutputPubDir>
-		<OutputPubDir Condition="'$(OutputRootPublishDirectory)' == ''">$(MSBuildThisFileDirectory)\bin\Output\publish\$(AssemblyName)</OutputPubDir>
+		<OutputPubDir Condition="'$(OutputArtifactPublishDirectory)' != ''">$(OutputArtifactPublishDirectory)</OutputPubDir>
+		<OutputPubDir Condition="'$(OutputArtifactPublishDirectory)' == ''">$(MSBuildThisFileDirectory)\bin\Output\publish\$(AssemblyName)</OutputPubDir>
 		<PublishDir>$(OutputPubDir)</PublishDir>
 
 		<SelfContained Condition="">true</SelfContained>

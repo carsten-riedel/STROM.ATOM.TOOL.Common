@@ -716,3 +716,314 @@ function Test-DotnetVulnerabilities {
     }
 }
 
+
+function New-DirectoryFromSegments {
+    <#
+    .SYNOPSIS
+        Combines path segments into a full directory path and creates the directory.
+    
+    .DESCRIPTION
+        This function takes an array of strings representing parts of a file system path,
+        combines them using [System.IO.Path]::Combine, validates the resulting path, creates
+        the directory if it does not exist, and returns the full directory path.
+    
+    .PARAMETER Paths
+        An array of strings that represents the individual segments of the directory path.
+    
+    .EXAMPLE
+        $outputReportDirectory = New-DirectoryFromSegments -Paths @($outputRootReportResultsDirectory, "$($projectFile.BaseName)", "$branchVersionFolder")
+        # This combines the three parts, creates the directory if needed, and returns the full path.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string[]]$Paths
+    )
+    
+    # Combine the provided path segments into a single path.
+    $combinedPath = [System.IO.Path]::Combine($Paths)
+    
+    # Validate that the combined path is not null or empty.
+    if ([string]::IsNullOrEmpty($combinedPath)) {
+        Write-Error "The combined path is null or empty."
+        exit 1
+    }
+    
+    # Create the directory if it does not exist.
+    [System.IO.Directory]::CreateDirectory($combinedPath) | Out-Null
+    
+    # Return the combined directory path.
+    return $combinedPath
+}
+
+
+function Copy-FilesRecursively {
+    <#
+    .SYNOPSIS
+        Recursively copies files from a source directory to a destination directory.
+
+    .DESCRIPTION
+        This function copies files from the specified source directory to the destination directory.
+        The file filter (default "*") limits the files that are copied. The –CopyEmptyDirs parameter
+        controls directory creation:
+         - If $true (default), the complete source directory tree is recreated.
+         - If $false, only directories that contain at least one file matching the filter (in that
+           directory or any subdirectory) will be created.
+        The –ForceOverwrite parameter (default $true) determines whether existing files are overwritten.
+
+    .PARAMETER SourceDirectory
+        The directory from which files and directories are copied.
+
+    .PARAMETER DestinationDirectory
+        The target directory to which files and directories will be copied.
+
+    .PARAMETER Filter
+        A wildcard filter that limits which files are copied. Defaults to "*".
+
+    .PARAMETER CopyEmptyDirs
+        If $true, the entire directory structure from the source is recreated in the destination.
+        If $false, only directories that will contain at least one file matching the filter are created.
+        Defaults to $true.
+
+    .PARAMETER ForceOverwrite
+        A Boolean value that indicates whether existing files should be overwritten.
+        Defaults to $true.
+
+    .EXAMPLE
+        # Copy all *.txt files, but only create directories that actually hold matching files.
+        Copy-FilesRecursively -SourceDirectory "C:\Source" `
+                              -DestinationDirectory "C:\Dest" `
+                              -Filter "*.txt" `
+                              -CopyEmptyDirs $false `
+                              -ForceOverwrite $true
+
+    .EXAMPLE
+        # Copy all files and recreate the full directory tree.
+        Copy-FilesRecursively -SourceDirectory "C:\Source" `
+                              -DestinationDirectory "C:\Dest"
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$SourceDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationDirectory,
+
+        [Parameter()]
+        [string]$Filter = "*",
+
+        [Parameter()]
+        [bool]$CopyEmptyDirs = $true,
+
+        [Parameter()]
+        [bool]$ForceOverwrite = $true
+    )
+
+    # Validate source directory exists.
+    if (-not (Test-Path $SourceDirectory)) {
+        Write-Error "Source directory '$SourceDirectory' does not exist."
+        return
+    }
+
+    # Ensure destination root exists.
+    if (-not (Test-Path $DestinationDirectory)) {
+        New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+    }
+
+    if ($CopyEmptyDirs) {
+        # Create the full directory structure from the source.
+        $allDirs = Get-ChildItem -Path $SourceDirectory -Recurse -Directory
+        # Include the source root.
+        $allDirs = @((Get-Item -Path $SourceDirectory)) + $allDirs
+        foreach ($dir in $allDirs) {
+            $relativePath = $dir.FullName.Substring($SourceDirectory.Length)
+            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
+                $relativePath = $relativePath.Substring(1)
+            }
+            $destDir = Join-Path $DestinationDirectory $relativePath
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+    }
+    else {
+        # Only create directories that will eventually hold at least one file matching the filter.
+        $files = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
+        $directoriesToCreate = $files | ForEach-Object { $_.Directory.FullName } | Select-Object -Unique
+        foreach ($dir in $directoriesToCreate) {
+            $relativePath = $dir.Substring($SourceDirectory.Length)
+            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
+                $relativePath = $relativePath.Substring(1)
+            }
+            $destDir = Join-Path $DestinationDirectory $relativePath
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+    }
+
+    # Now, copy files that match the filter.
+    $filesToCopy = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
+    foreach ($file in $filesToCopy) {
+        $relativePath = $file.FullName.Substring($SourceDirectory.Length)
+        if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
+            $relativePath = $relativePath.Substring(1)
+        }
+        $destPath = Join-Path $DestinationDirectory $relativePath
+        if ($ForceOverwrite) {
+            Copy-Item -Path $file.FullName -Destination $destPath -Force
+        }
+        else {
+            Copy-Item -Path $file.FullName -Destination $destPath
+        }
+    }
+
+    Write-Output "Files and directories have been copied to '$DestinationDirectory'."
+}
+
+function Copy-FilesRecursively2 {
+    <#
+    .SYNOPSIS
+        Recursively copies files from a source directory to a destination directory.
+
+    .DESCRIPTION
+        This function copies files from the specified source directory to the destination directory.
+        The file filter (default "*") limits the files that are copied. The –CopyEmptyDirs parameter
+        controls directory creation:
+         - If $true (default), the complete source directory tree is recreated.
+         - If $false, only directories that contain at least one file matching the filter (in that
+           directory or any subdirectory) will be created.
+        The –ForceOverwrite parameter (default $true) determines whether existing files are overwritten.
+        The –CleanDestination parameter (default $false) controls whether additional files in the root of the
+        DestinationDirectory (files that do not exist in the source directory) should be removed.
+        **Note:** This cleaning only applies to files in the destination root and does not affect files
+        in subdirectories.
+
+    .PARAMETER SourceDirectory
+        The directory from which files and directories are copied.
+
+    .PARAMETER DestinationDirectory
+        The target directory to which files and directories will be copied.
+
+    .PARAMETER Filter
+        A wildcard filter that limits which files are copied. Defaults to "*".
+
+    .PARAMETER CopyEmptyDirs
+        If $true, the entire directory structure from the source is recreated in the destination.
+        If $false, only directories that will contain at least one file matching the filter are created.
+        Defaults to $true.
+
+    .PARAMETER ForceOverwrite
+        A Boolean value that indicates whether existing files should be overwritten.
+        Defaults to $true.
+
+    .PARAMETER CleanDestination
+        If $true, any extra files found in the destination directory’s root (that are not present in the
+        source directory, matching the filter) are removed. Files in subdirectories are not affected.
+        Defaults to $false.
+
+    .EXAMPLE
+        # Copy all *.txt files, create only directories that hold matching files, and clean extra files in the destination root.
+        Copy-FilesRecursively -SourceDirectory "C:\Source" `
+                              -DestinationDirectory "C:\Dest" `
+                              -Filter "*.txt" `
+                              -CopyEmptyDirs $false `
+                              -ForceOverwrite $true `
+                              -CleanDestination $true
+
+    .EXAMPLE
+        # Copy all files, recreate the full directory tree without cleaning extra files.
+        Copy-FilesRecursively -SourceDirectory "C:\Source" `
+                              -DestinationDirectory "C:\Dest"
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$SourceDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationDirectory,
+
+        [Parameter()]
+        [string]$Filter = "*",
+
+        [Parameter()]
+        [bool]$CopyEmptyDirs = $true,
+
+        [Parameter()]
+        [bool]$ForceOverwrite = $true,
+
+        [Parameter()]
+        [bool]$CleanDestination = $false
+    )
+
+    # Validate source directory exists.
+    if (-not (Test-Path $SourceDirectory)) {
+        Write-Error "Source directory '$SourceDirectory' does not exist."
+        return
+    }
+
+    # Ensure destination root exists.
+    if (-not (Test-Path $DestinationDirectory)) {
+        New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+    }
+
+    if ($CopyEmptyDirs) {
+        # Create the full directory structure from the source.
+        $allDirs = Get-ChildItem -Path $SourceDirectory -Recurse -Directory
+        # Include the source root.
+        $allDirs = @((Get-Item -Path $SourceDirectory)) + $allDirs
+        foreach ($dir in $allDirs) {
+            $relativePath = $dir.FullName.Substring($SourceDirectory.Length)
+            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
+                $relativePath = $relativePath.Substring(1)
+            }
+            $destDir = Join-Path $DestinationDirectory $relativePath
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+    }
+    else {
+        # Only create directories that will eventually hold at least one file matching the filter.
+        $files = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
+        $directoriesToCreate = $files | ForEach-Object { $_.Directory.FullName } | Select-Object -Unique
+        foreach ($dir in $directoriesToCreate) {
+            $relativePath = $dir.Substring($SourceDirectory.Length)
+            if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
+                $relativePath = $relativePath.Substring(1)
+            }
+            $destDir = Join-Path $DestinationDirectory $relativePath
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+    }
+
+    # Copy files that match the filter.
+    $filesToCopy = Get-ChildItem -Path $SourceDirectory -Recurse -File -Filter $Filter
+    foreach ($file in $filesToCopy) {
+        $relativePath = $file.FullName.Substring($SourceDirectory.Length)
+        if ($relativePath.StartsWith([IO.Path]::DirectorySeparatorChar)) {
+            $relativePath = $relativePath.Substring(1)
+        }
+        $destPath = Join-Path $DestinationDirectory $relativePath
+        if ($ForceOverwrite) {
+            Copy-Item -Path $file.FullName -Destination $destPath -Force
+        }
+        else {
+            Copy-Item -Path $file.FullName -Destination $destPath
+        }
+    }
+
+    # Remove extra files in the destination root if the parameter is enabled.
+    if ($CleanDestination) {
+        # Get only top-level files in destination.
+        $destRootFiles = Get-ChildItem -Path $DestinationDirectory -File
+        # Get expected files from the source root that match the filter.
+        $sourceRootFiles = Get-ChildItem -Path $SourceDirectory -File -Filter $Filter
+        $expectedNames = $sourceRootFiles | ForEach-Object { $_.Name }
+        foreach ($file in $destRootFiles) {
+            if (-not ($expectedNames -contains $file.Name)) {
+                Remove-Item -Path $file.FullName -Force
+            }
+        }
+    }
+
+    Write-Output "Files and directories have been copied to '$DestinationDirectory'."
+}
+
+
