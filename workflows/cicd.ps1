@@ -161,6 +161,11 @@ foreach ($solutionFile in $solutionFiles) {
 }
 
 # Projects clean restore and build ------------------------------------
+Write-Host "===> Projects =========================================================" -ForegroundColor Green
+Write-Host "===> Projects =========================================================" -ForegroundColor Green
+Write-Host "===> Projects =========================================================" -ForegroundColor Green
+Write-Host "===> Projects =========================================================" -ForegroundColor Green
+
 
 $projectFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern "*.csproj"
 
