@@ -115,7 +115,7 @@ $solutionFiles = Find-FilesByPattern -Path "$topLevelDirectory\source" -Pattern 
 foreach ($solutionFile in $solutionFiles) {
 
     $commonSolutionParameters = @(
-        "--verbosity","normal",
+        "--verbosity","minimal",
         "-p:""VersionBuild=$($calculatedVersion.VersionBuild)""",
         "-p:""VersionMajor=$($calculatedVersion.VersionMajor)""",
         "-p:""VersionMinor=$($calculatedVersion.VersionMinor)""",
@@ -378,9 +378,14 @@ foreach ($projectFile in $projectFiles) {
         if ($isCiCd)
         {
             $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
-
-            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+            if ($firstFileMatch) {
+                Write-Host "===> NuGet package found: '$($firstFileMatch.FullName)'. Proceeding with push..." -ForegroundColor Green
+                dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+            }
+            else {
+                Write-Host "===> Warning: No NuGet package (*.nupkg) found in '$outputArtifactPackDirectory' for deployment." -ForegroundColor Yellow
+            }
         }
     } elseif ($channelRoot.ToLower() -in @("quality")) {
         if ($isLocal)
@@ -395,10 +400,15 @@ foreach ($projectFile in $projectFiles) {
         if ($isCiCd)
         {
             $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
-            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
-
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+            if ($firstFileMatch) {
+                Write-Host "===> NuGet package found: '$($firstFileMatch.FullName)'. Proceeding with push..." -ForegroundColor Green
+                dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+            }
+            else {
+                Write-Host "===> Warning: No NuGet package (*.nupkg) found in '$outputArtifactPackDirectory' for deployment." -ForegroundColor Yellow
+            }
         }
     } elseif ($channelRoot.ToLower() -in @("staging")) {
         if ($isLocal)
@@ -413,10 +423,15 @@ foreach ($projectFile in $projectFiles) {
         if ($isCiCd)
         {
             $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
-            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
-            
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+            if ($firstFileMatch) {
+                Write-Host "===> NuGet package found: '$($firstFileMatch.FullName)'. Proceeding with push..." -ForegroundColor Green
+                dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_TEST_PAT --source https://apiint.nugettest.org/v3/index.json
+            }
+            else {
+                Write-Host "===> Warning: No NuGet package (*.nupkg) found in '$outputArtifactPackDirectory' for deployment." -ForegroundColor Yellow
+            }
         }
     } elseif ($channelRoot.ToLower() -in @("production")) {
         if ($isLocal)
@@ -432,10 +447,15 @@ foreach ($projectFile in $projectFiles) {
         if ($isCiCd)
         {
             $firstFileMatch = Get-ChildItem -Path $outputArtifactPackDirectory -Filter "*.nupkg" -File -Recurse | Select-Object -First 1
-            dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
-
-            dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_PAT --source https://api.nuget.org/v3/index.json
+            if ($firstFileMatch) {
+                Write-Host "===> NuGet package found: '$($firstFileMatch.FullName)'. Proceeding with push..." -ForegroundColor Green
+                dotnet nuget add source --username carsten-riedel --password $NUGET_GITHUB_PUSH --store-password-in-clear-text --name github "https://nuget.pkg.github.com/carsten-riedel/index.json"
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_GITHUB_PUSH --source github
+                dotnet nuget push "$($firstFileMatch.FullName)" --api-key $NUGET_PAT --source https://api.nuget.org/v3/index.json
+            }
+            else {
+                Write-Host "===> Warning: No NuGet package (*.nupkg) found in '$outputArtifactPackDirectory' for deployment." -ForegroundColor Yellow
+            }
         }
     } else {
         <# Action when all if and elseif conditions are false #>

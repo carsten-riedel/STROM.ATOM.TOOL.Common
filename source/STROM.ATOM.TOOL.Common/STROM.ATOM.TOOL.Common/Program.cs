@@ -44,6 +44,7 @@ namespace STROM.ATOM.TOOL.Common
                 {
                     config.SetApplicationName("satcom");
                     config.AddCommand<DumpCommand>("dump").WithDescription("The dump command.").WithExample(new[] { "dump", "osversion" }).WithExample(new[] { "dump", "envars" }).WithExample(new[] { "dump", "osversion", "--loglevel verbose", "--forceSuccess true" }); ;
+                    config.AddCommand<VsCodeCommand>("vscode").WithDescription("Installs vscode.").WithExample(new[] { "vscode", "--loglevel verbose", "--forceSuccess true" }); ;
                 }, args).UseSerilog(Log.Logger).UseConsoleLifetime(e => { e.SuppressStatusMessages = true; })
                 ;
 

@@ -2,7 +2,7 @@
   "profiles": {
     "STROM.ATOM.TOOL.Common": {
       "commandName": "Project",
-      "commandLineArgs": "dump envars"
+      "commandLineArgs": "vscode"
     }
   }
 }
