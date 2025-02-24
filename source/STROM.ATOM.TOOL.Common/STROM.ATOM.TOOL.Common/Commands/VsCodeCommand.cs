@@ -60,7 +60,6 @@ namespace STROM.ATOM.TOOL.Common.Commands
             [DefaultValue(false)]
             [CommandOption("-f|--forceSuccess")]
             public bool ForceSuccess { get; init; }
-  
         }
 
         public VsCodeCommand(ILogger<VsCodeCommand> logger, IOsVersionService osVersionService)
